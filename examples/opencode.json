@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "pg-dba": {
+    "dba": {
       "command": "uv",
       "args": ["run", "blueprint", "serve", "--config", "config", "--transport", "stdio"],
       "cwd": "/absolute/path/to/mcp-blueprint"

@@ -73,6 +73,7 @@ Checkboxes track the current MVP status.
 * [x] Query execution
 * [ ] Transaction management
 * [x] Connection pooling
+* [x] Engine-aware tool loading (`engines`, per-engine `sql` map)
 
 ---
 
@@ -99,7 +100,11 @@ Checkboxes track the current MVP status.
 
 ## MySQL adapter
 
-* [ ] MySQL implementation
+* [x] asyncmy implementation
+* [x] Async support
+* [x] Connection pool
+* [x] Connection testing
+* [x] DSN and parts-based configuration
 
 ---
 
@@ -161,71 +166,64 @@ Checkboxes track the current MVP status.
 
 ---
 
-# PostgreSQL DBA Pack
+# DBA Pack
 
-The PostgreSQL DBA Pack is the reference implementation for the framework.
+The DBA pack (`packs/dba`, formerly `packs/pg-dba`) is the reference
+implementation for the framework.  It is cross-database: tools declare the
+engines they support via a per-engine `sql` map and are filtered at load time
+by the configured engine.  Supported engines: PostgreSQL 14+ and MySQL 8+.
 
-## Sessions
+## KPI dashboards
 
-* [x] get_connections()
-* [x] get_active_sessions()
-* [ ] get_idle_sessions()
-* [x] get_long_running_queries()
+Always return rows with `status` of `ok`/`warning`/`error`.
 
----
-
-## Locks
-
-* [x] get_blocking_sessions()
-* [ ] get_lock_tree()
-* [x] get_wait_events()
+* [x] get_operational_kpis()
+* [x] get_performance_kpis()
+* [x] get_security_kpis()
 
 ---
 
-## Storage
+## Detail tools
 
-* [x] get_database_size()
-* [ ] get_tablespace_size()
-* [ ] get_table_size()
-* [ ] get_index_size()
-
----
-
-## Maintenance
-
-* [ ] get_autovacuum_status()
-* [ ] get_vacuum_progress()
-* [ ] get_analyze_status()
-
----
-
-## Bloat
-
-* [ ] get_table_bloat()
-* [ ] get_index_bloat()
-
----
-
-## Transactions
-
-* [ ] get_xid_status()
-* [ ] get_oldest_transactions()
-
----
-
-## Performance
-
-* [ ] get_top_queries()
-* [ ] get_expensive_queries()
-* [ ] get_io_statistics()
-
----
-
-## Replication
-
+* [x] get_users()
+* [x] get_database_sizes()
+* [x] get_largest_objects()
 * [x] get_replication_status()
-* [ ] get_replication_lag()
-* [ ] get_wal_statistics()
+* [x] get_tuning_configuration()
+* [x] get_slow_queries()
+* [x] get_maintenance_status() (cross-engine)
+* [x] get_index_health() (postgres-only)
+
+---
+
+## Removed from the original pg-dba pack
+
+* [x] get_connections(), get_active_sessions(), get_blocking_sessions(),
+      get_wait_events(), get_long_running_queries() — covered by the KPI
+      dashboards and detail tools
+* [x] get_wal_backup_status() — checkpoint/backup metrics depend on the
+      PostgreSQL minor version; excluded from the static pack
+
+---
+
+## Validated
+
+* [x] All tools run with a non-DBA user (`pg_monitor`) on PostgreSQL
+* [x] All tools run with a plain read-only PostgreSQL user
+* [x] All tools run on MySQL 8 with a least-privilege monitoring user
+
+---
+
+## Template pack
+
+* [x] `template/pack` skeleton (pack.yaml + example tool + example SQL)
+* [x] Not auto-loaded by the framework
+
+---
+
+## Next pack: Sakila
+
+* [ ] Create `packs/sakila` from the template (or the DBA pack layout)
 
 ---
 
@@ -243,7 +241,7 @@ The PostgreSQL DBA Pack is the reference implementation for the framework.
 
 # MySQL DBA Pack
 
-* [ ] Initial implementation
+* [x] Covered by the cross-engine `dba` pack (11 tools on MySQL 8)
 
 ---
 
@@ -269,7 +267,8 @@ The PostgreSQL DBA Pack is the reference implementation for the framework.
 # Testing
 
 * [x] Unit tests
-* [x] Integration tests
+* [x] Integration tests (PostgreSQL, live instance)
+* [x] Integration tests (MySQL, live instance, skipped when unreachable)
 * [ ] PostgreSQL CI
 * [ ] Oracle CI
 * [ ] SQL Server CI

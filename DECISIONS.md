@@ -275,13 +275,80 @@ without modifying the framework itself.
 
 ### Decision
 
-The first pack is the PostgreSQL DBA Pack.
+The first pack is the DBA pack (`packs/dba`, formerly `packs/pg-dba`), a cross-database administration pack.
 
 ### Rationale
 
 It demonstrates all major framework capabilities while providing immediate practical value.
 
 The same architectural model can later be applied to Oracle, MySQL and business-oriented domains.
+
+---
+
+# Decision 14
+
+## Tools are engine-aware
+
+### Decision
+
+Each tool declares which engines it supports.  Two mechanisms, both optional:
+
+* `sql` as a map keyed by engine (`postgresql`, `mysql`, `oracle`)
+* a shared `sql` path restricted by an explicit `engines` list
+
+Tools that cannot run on the configured engine (from `database.engine`) are
+skipped at load time.
+
+### Rationale
+
+The same logical tool (replication, users, storage) needs different SQL per
+DBMS.  Tagging tools by engine keeps one pack usable across engines while
+preventing SQL dialect errors.  The agent still sees a stable interface
+regardless of the underlying database.
+
+---
+
+# Decision 15
+
+## Template and pack are distinct objects
+
+### Decision
+
+`template/pack` is a minimal skeleton (pack metadata, one example tool, one
+example SQL file) and is **not** auto-loaded by the framework.  Concrete packs
+live in `packs/` (e.g. `packs/dba`).
+
+### Rationale
+
+A new domain pack (e.g. a "Sakila" pack) can be created by copying the template
+or an existing pack and touching only names, descriptions and SQL queries.
+Keeping the template free of domain content makes it stable and reusable.
+
+---
+
+# Decision 16
+
+## KPI-based pack tools, minimum PostgreSQL 14
+
+### Decision
+
+The `dba` pack exposes three KPI dashboards (operational, performance,
+security) that always return rows with a `status` of `ok`/`warning`/`error`,
+plus detail tools (users, largest objects, slow queries, index health).
+Supported engines: PostgreSQL 14+ and MySQL 8+.
+
+### Rationale
+
+KPI rows with a computed `status` give the agent an immediate diagnosis and
+reduce round-trips.  The framework is validated against PostgreSQL 14+ and
+MySQL 8+ (both with least-privilege monitoring users), proving the
+engine-aware tool loading: the same YAML pack exposes the same tool names on
+both engines, with only the SQL file changing.
+
+PostgreSQL 12 and 13 reached end-of-life and several relevant columns (e.g.
+`total_exec_time` in `pg_stat_statements`) were renamed in PostgreSQL 14;
+older versions would require version-forked SQL that a single static statement
+cannot express.
 
 ---
 

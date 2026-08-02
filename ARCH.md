@@ -24,7 +24,8 @@ An LLM should decide **which information is needed**, not **how to retrieve it**
 | Configuration     | YAML                    | Human-readable and version-control friendly                      |
 | SQL Templates     | Jinja2                  | Optional conditional SQL generation                              |
 | PostgreSQL Driver | psycopg3                | Modern PostgreSQL driver                                         |
-| Other Drivers     | Adapter-based           | Oracle, MySQL, MariaDB, ClickHouse, ...                          |
+| MySQL Driver      | asyncmy                 | Async MySQL 8 driver                                             |
+| Other Drivers     | Adapter-based           | Oracle, MariaDB, ClickHouse, ... (planned)                       |
 | Logging           | structlog               | Structured logs suitable for production                          |
 | Cache             | cachetools or aiocache  | Lightweight in-memory cache                                      |
 | Transport         | stdio + Streamable HTTP | Same codebase supports both                                      |
@@ -208,18 +209,18 @@ Instead, all engines implement a common interface.
 ```
 DatabaseAdapter
 
+    engine          # canonical identifier, e.g. "postgresql"
+
     execute(sql, parameters)
 
     test_connection()
-
-    metadata()
 ```
 
 Possible implementations:
 
-* PostgreSQL
+* PostgreSQL (implemented)
+* MySQL (implemented)
 * Oracle
-* MySQL
 * MariaDB
 * SQLite
 * ClickHouse
@@ -232,6 +233,36 @@ Could be applied to NoSQL database too, SQL is replaced by queries in the requir
 
 ---
 
+# Engine-Aware Tool Loading
+
+Each tool declares the engines it supports.  Two mechanisms, both optional:
+
+* `sql` as a **map keyed by engine**: the tool exists for an engine only when
+  it has a SQL entry for it:
+
+  ```yaml
+  sql:
+    postgresql: ../sql/postgresql/get_users.sql
+    mysql:      ../sql/mysql/get_users.sql
+  ```
+
+* a single shared `sql` path restricted with an explicit `engines` list:
+
+  ```yaml
+  engines: [postgresql]
+  sql: ../sql/get_vacuum_status.sql
+  ```
+
+Tools that cannot run on the configured engine (from
+`database.engine`) are skipped at registration time.  This lets one pack expose
+the same logical tool (replication, users, storage) across engines while
+keeping a separate SQL file per engine.
+
+The `dba` pack ships SQL for PostgreSQL (`sql/postgresql/`) and MySQL
+(`sql/mysql/`); the same tool interface is exposed on both engines.
+
+---
+
 # SQL Management
 
 SQL is always external.
@@ -241,11 +272,20 @@ Example:
 ```
 sql/
 
-    get_connections.sql
+    postgresql/
+        get_connections.sql
+        get_database_size.sql
+        get_blocking_sessions.sql
 
-    get_database_size.sql
+    mysql/                  # future
+        get_connections.sql
+```
 
-    get_blocking_sessions.sql
+Tools point at the file matching the configured engine:
+
+```yaml
+sql:
+  postgresql: ../sql/postgresql/get_connections.sql
 ```
 
 Benefits:
@@ -270,7 +310,7 @@ SELECT *
 FROM pg_stat_activity
 
 {% if database %}
-WHERE datname = :database
+WHERE datname = %(database)s
 {% endif %}
 ```
 
@@ -295,13 +335,51 @@ parameters:
     type: string
     required: false
 
-sql: sql/get_connections.sql
+sql:
+  postgresql: ../sql/postgresql/get_connections.sql
 
 cache:
   ttl: 30
 ```
 
 The framework loads and registers tools automatically.
+
+---
+
+# KPI-Based Tools
+
+Diagnostic packs (e.g. the `dba` pack) expose KPI dashboards rather than raw
+catalog listings.  A KPI tool always returns rows with the shape:
+
+```yaml
+kpi_name: connection_slots_used
+current_value: 47
+unit: percent
+suggested_threshold: 90
+status: ok            # ok | warning | error
+```
+
+`status` is computed from `current_value` against `suggested_threshold`, so an
+agent gets an immediate diagnosis without parsing raw numbers.  Detail tools
+(user listings, largest objects, slow queries) complement the dashboards.
+
+---
+
+# Template vs Pack
+
+`template/pack` contains the minimal skeleton needed to author a new pack:
+
+```
+template/pack/
+    pack.yaml
+    tools/
+    sql/
+```
+
+It is **not** auto-loaded by the framework.  A concrete pack (e.g. `packs/dba`)
+is created by copying the template and filling in tool names, descriptions and
+SQL queries.  The separation keeps the template free of domain content while
+packs remain self-contained and installable.
 
 ---
 

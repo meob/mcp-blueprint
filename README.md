@@ -51,13 +51,14 @@ get_customer_payments()
 search_customer()
 ```
 
-or, for PostgreSQL administration,
+or, for database administration,
 
 ```
-get_connections()
-get_blocking_sessions()
-get_wait_events()
-get_database_size()
+get_operational_kpis()
+get_performance_kpis()
+get_security_kpis()
+get_users()
+get_database_sizes()
 get_replication_status()
 ```
 
@@ -150,18 +151,26 @@ Example:
 ```
 packs/
 
-    pg-dba/
+    dba/
 
         tools/
 
         sql/
+            postgresql/
 
         config/
+
+    sakila/
 
     customer/
 
     warehouse/
 ```
+
+Tools declare the engines they support: a per-engine `sql` map (or a shared
+`sql` path with an `engines` list).  Only the tools that can run on the
+configured engine are loaded.  `template/pack` provides a minimal skeleton for
+authoring new packs and is not auto-loaded.
 
 ---
 
@@ -182,7 +191,8 @@ parameters:
     type: string
     required: false
 
-sql: sql/get_connections.sql
+sql:
+  postgresql: sql/postgresql/get_connections.sql
 ```
 
 No Python code should be required to create a new tool.
@@ -196,11 +206,13 @@ SQL remains external.
 ```
 sql/
 
-    get_connections.sql
+    postgresql/
 
-    get_wait_events.sql
+        get_users.sql
 
-    get_database_size.sql
+        get_database_sizes.sql
+
+        get_replication_status.sql
 ```
 
 Changing database version or optimizer hints should never require changing Python code.
@@ -225,33 +237,48 @@ Every pack is independent.
 
 ---
 
-# PostgreSQL DBA Pack
+# DBA Pack
 
-The first reference implementation is the PostgreSQL DBA Pack.
+The first reference implementation is the **DBA pack** (`packs/dba`, formerly
+`packs/pg-dba`), a cross-database administration pack supporting
+**PostgreSQL 14+** and **MySQL 8+**.  Each tool ships one SQL file per engine
+under `sql/postgresql/` and `sql/mysql/`; the tool interface is identical on
+both engines.
 
-It contains ready-to-use tools for database administration.
+It contains ready-to-use tools for database administration, split into KPI
+dashboards and detail tools.
 
-Examples include
+KPI dashboards always return rows with a `status` of `ok`/`warning`/`error`:
 
-- connected sessions
-- active sessions
-- blocking sessions
-- lock analysis
-- wait events
-- database size
-- table size
-- index bloat
-- missing indexes
-- replication
-- WAL statistics
-- autovacuum
-- transaction ID usage
-- longest running queries
+- operational KPIs (connection slots, transaction wrap, database growth)
+- performance KPIs (cache hit ratio, replication lag, index usage)
+- security KPIs (pending SSL, roles with login, password checks)
+
+Detail tools:
+
+- users and roles
+- database sizes
+- largest objects
+- replication status
+- tuning configuration
 - slow queries
+- maintenance status
+- index health
 
 The pack does not expose SQL execution.
 
-Only curated DBA operations.
+Only curated DBA operations.  All tools work with least-privilege monitoring
+users (e.g. the `pg_monitor` role on PostgreSQL).
+
+---
+
+# Template pack
+
+`template/pack` is the minimal skeleton for a new pack (pack metadata, one
+example tool, one example SQL query).  It is not auto-loaded by the framework.
+To start a new domain pack, copy the template or an existing pack such as
+`packs/dba` and replace tool names, descriptions and SQL.  See
+`template/README.md`.
 
 ---
 

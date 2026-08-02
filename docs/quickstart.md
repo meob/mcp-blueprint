@@ -13,7 +13,15 @@ Every value in a YAML configuration file supports environment expansion:
 ```yaml
 database:
   engine: postgresql
-  dsn: ${MCP_BLUEPRINT_DATABASE_URL:-postgresql://meo@localhost:5432/pgbench}
+  dsn: ${MCP_BLUEPRINT_DATABASE_URL:-postgresql://pgbench@localhost:5432/pgbench}
+```
+
+The same pack runs on MySQL by switching the engine and DSN:
+
+```yaml
+database:
+  engine: mysql
+  dsn: ${MCP_BLUEPRINT_DATABASE_URL:-mysql://monitor:password@localhost:3306/mydb}
 ```
 
 ## 2. List the available tools
@@ -25,13 +33,17 @@ uv run blueprint list-tools --config config
 Output:
 
 ```
-get_active_sessions
-get_blocking_sessions
-get_connections
-get_database_size
-get_long_running_queries
+get_database_sizes
+get_index_health
+get_largest_objects
+get_maintenance_status
+get_operational_kpis
+get_performance_kpis
 get_replication_status
-get_wait_events
+get_security_kpis
+get_slow_queries
+get_tuning_configuration
+get_users
 ```
 
 ## 3. Run the server over stdio
@@ -45,7 +57,7 @@ Register it in OpenCode by adding to your MCP configuration:
 ```json
 {
   "mcpServers": {
-    "pg-dba": {
+    "dba": {
       "command": "uv",
       "args": ["run", "blueprint", "serve", "--config", "config", "--transport", "stdio"],
       "cwd": "/absolute/path/to/mcp-blueprint"
@@ -59,7 +71,7 @@ For Claude Desktop, the equivalent entry is:
 ```json
 {
   "mcpServers": {
-    "pg-dba": {
+    "dba": {
       "command": "/absolute/path/to/mcp-blueprint/.venv/bin/blueprint",
       "args": ["serve", "--config", "config", "--transport", "stdio"],
       "cwd": "/absolute/path/to/mcp-blueprint"
@@ -81,7 +93,7 @@ Register it in OpenCode:
 ```json
 {
   "mcpServers": {
-    "pg-dba": {
+    "dba": {
       "url": "http://127.0.0.1:8000/mcp"
     }
   }
@@ -92,9 +104,14 @@ Register it in OpenCode:
 
 The exposed tools are domain-oriented.  Ask for information, not SQL:
 
-* "how many connections are active on pgbench?"
-* "which queries are running longer than one minute?"
-* "how big is each database?"
-* "are there blocking sessions?"
+* "how is the database doing overall?" → `get_operational_kpis`
+* "any performance problems right now?" → `get_performance_kpis`
+* "are there security concerns?" → `get_security_kpis`
+* "which database is the largest?" → `get_database_sizes`
+* "what are the slowest statements?" → `get_slow_queries`
+* "are indexes healthy?" → `get_index_health`
+
+KPI tools return rows with a `status` of `ok`/`warning`/`error`, so the LLM can
+answer with a diagnosis instead of a raw table dump.
 
 The LLM chooses the tool; the tool hides the SQL.

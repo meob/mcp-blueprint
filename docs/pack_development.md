@@ -52,9 +52,38 @@ format:
     customer_name: name
   hidden:
     - internal_id
-  convert_size:
-    - total_bytes
 ```
+
+### Multi-engine tools
+
+A tool is engine-aware when its SQL differs per engine.  Two forms:
+
+**`sql` as a map keyed by engine** — the tool exists for an engine only when it
+has a SQL entry for it:
+
+```yaml
+name: get_users
+description: List database users.
+
+sql:
+  postgresql: ../sql/postgresql/get_users.sql
+  mysql:      ../sql/mysql/get_users.sql
+```
+
+**A shared `sql` path with an `engines` list** — for SQL that is identical
+across engines (or engine-neutral):
+
+```yaml
+name: get_maintenance_status
+description: Report maintenance-related metrics.
+
+engines: [postgresql]
+sql: ../sql/get_maintenance_status.sql
+```
+
+At load time the framework keeps only the tools that can run on the configured
+engine (`database.engine`).  Supported canonical engine identifiers are
+`postgresql`, `mysql` and `oracle` (with `postgres` accepted as an alias).
 
 ### Fields
 
@@ -63,14 +92,17 @@ format:
 | `name`                 | string               | Tool name, lowercase with underscores.             |
 | `description`          | string               | Short description shown to the LLM.                |
 | `parameters`           | map of parameters    | Each parameter has `type`, `required`, `default`.  |
-| `sql`                  | string               | SQL path, relative to the tool YAML file.          |
+| `sql`                  | string or map        | SQL path, or map keyed by engine.                  |
+| `engines`              | list of strings      | Optional; restricts a shared `sql` path to engines.|
 | `cache.ttl`            | integer              | Cache TTL in seconds. Omit to use the default.     |
 | `roles`                | list of strings      | Optional role metadata (reserved for authorization).|
 | `enabled`              | boolean              | Set to `false` to hide the tool.                   |
 | `requires_confirmation`| boolean              | Reserved for confirmation workflows.               |
 | `format.rename`        | map                  | Rename result columns.                             |
 | `format.hidden`        | list of strings      | Drop internal columns from results.                |
-| `format.convert_size`  | list of strings      | Convert byte columns to human-readable sizes.      |
+
+If both `sql` (map) and `engines` are present, the `engines` list must match
+the keys of the `sql` map.
 
 ### Parameter types
 
@@ -111,6 +143,60 @@ packs/my-pack/sql/get_customer.sql
 ```
 
 is referenced with `sql: ../sql/get_customer.sql`.
+
+### Per-engine SQL layout
+
+Multi-engine packs store one SQL file per engine:
+
+```
+packs/dba/
+    pack.yaml
+    tools/
+        get_users.yaml
+    sql/
+        postgresql/
+            get_users.sql
+        mysql/
+            get_users.sql
+```
+
+Engine identifiers in the `sql` map must match the directory names under
+`sql/`.
+
+## KPI status convention
+
+Diagnostic tools should return KPI rows so an agent can judge health at a
+glance.  Each KPI row carries a `status` computed from the current value
+against a suggested threshold:
+
+| Column                | Description                               |
+| --------------------- | ----------------------------------------- |
+| `kpi_name`            | Stable machine-readable identifier.       |
+| `current_value`       | Measured value.                           |
+| `unit`                | e.g. `percent`, `bytes`, `count`.         |
+| `suggested_threshold` | Value beyond which the KPI is unhealthy.  |
+| `status`              | `ok`, `warning` or `error`.               |
+
+Every KPI query returns one row per KPI (never filters rows out on severity),
+so the agent always sees the full dashboard.
+
+## Template pack
+
+`template/pack` is a minimal skeleton for authoring new packs:
+
+```
+template/pack/
+    pack.yaml
+    tools/
+        get_items.yaml
+    sql/
+        postgresql/
+            get_items.sql
+```
+
+It is **not** auto-loaded by the framework.  Create a new pack by copying the
+template (or an existing pack such as `packs/dba`) and replacing tool names,
+descriptions and SQL queries.  See `template/README.md` for the workflow.
 
 ## Adding a new tool
 
