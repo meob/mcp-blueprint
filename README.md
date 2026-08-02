@@ -1,5 +1,7 @@
 # MCP Blueprint
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 **Build domain-oriented MCP servers without writing Python code for every project.**
 
 MCP Blueprint is a lightweight framework for creating Model Context Protocol (MCP) servers from configuration files, SQL queries and metadata instead of custom application code.
@@ -63,6 +65,20 @@ get_replication_status()
 ```
 
 Every tool has a well-defined purpose and hides all SQL complexity.
+
+---
+
+## Getting started
+
+Install the framework and run the reference server:
+
+```bash
+uv sync --all-extras --dev
+uv run blueprint serve --config config --transport stdio
+```
+
+For a full walkthrough see [docs/installation.md](docs/installation.md) and
+[docs/quickstart.md](docs/quickstart.md).
 
 ---
 
@@ -218,7 +234,7 @@ sql/
         get_replication_status.sql
 ```
 
-Changing database version or optimizer hints should never require changing Python code.
+Changing the database version or rewriting a query should never require changing Python code.
 
 ---
 
@@ -289,32 +305,6 @@ To start a new domain pack, copy the template or an existing pack such as
 
 ---
 
-# Cross-database philosophy
-
-Different database engines expose different system catalogs.
-
-However, most administration concepts are identical.
-
-Examples include
-
-- connected sessions
-- active sessions
-- blocking chains
-- locks
-- storage usage
-- fragmentation
-- expensive queries
-- replication
-- transaction activity
-
-Only SQL changes.
-
-Tool names remain identical.
-
-This allows an LLM to work with PostgreSQL, Oracle, or MySQL using exactly the same MCP interface.
-
----
-
 # Design goals
 
 - Configuration-driven
@@ -335,3 +325,9 @@ MCP Blueprint aims to become for MCP what REST frameworks became for HTTP APIs.
 Developers should focus on describing their domain, not implementing infrastructure.
 
 An MCP server should be assembled from reusable packs rather than developed from scratch.
+
+---
+
+# License
+
+Released under the [Apache License 2.0](LICENSE).
