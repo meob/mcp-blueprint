@@ -1,5 +1,5 @@
 database:
-  engine: postgresql
+  engine: ${MCP_BLUEPRINT_DATABASE_ENGINE:-postgresql}
   dsn: ${MCP_BLUEPRINT_DATABASE_URL:-postgresql://pgbench@localhost:5432/pgbench}
   pool:
     min_size: 1

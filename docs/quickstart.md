@@ -12,18 +12,18 @@ Every value in a YAML configuration file supports environment expansion:
 
 ```yaml
 database:
-  engine: postgresql
+  engine: ${MCP_BLUEPRINT_DATABASE_ENGINE:-postgresql}
   dsn: ${MCP_BLUEPRINT_DATABASE_URL:-postgresql://pgbench@localhost:5432/pgbench}
 ```
 
 The engine also selects the pack: with `engine: postgresql` the `pg-dba` pack
 loads; with `engine: mysql` the `mysql-dba` pack loads.  The two packs expose
-the same tool names.
+the same tool names.  The engine is env-overridable too:
 
-```yaml
-database:
-  engine: mysql
-  dsn: ${MCP_BLUEPRINT_DATABASE_URL:-mysql://monitor:password@localhost:3306/mydb}
+```bash
+MCP_BLUEPRINT_DATABASE_ENGINE=mysql \
+MCP_BLUEPRINT_DATABASE_URL="mysql://monitor:password@localhost:3306/mydb" \
+uv run blueprint list-tools --config config
 ```
 
 ## 2. List the available tools
@@ -81,6 +81,42 @@ For Claude Desktop, the equivalent entry is:
   }
 }
 ```
+
+### Both packs in parallel
+
+One server process serves exactly one engine.  To give an agent both packs
+(e.g. to operate on a PostgreSQL and a MySQL environment in parallel),
+register two MCP servers pointing at the same config directory with different
+environment overrides.  The following OpenCode configuration exposes the
+`pg-dba` and `mysql-dba` servers side by side:
+
+```json
+{
+  "mcp": {
+    "pg-dba": {
+      "type": "local",
+      "command": ["/absolute/path/to/mcp-blueprint/.venv/bin/blueprint", "serve", "--config", "config", "--transport", "stdio"],
+      "cwd": "/absolute/path/to/mcp-blueprint",
+      "environment": {
+        "MCP_BLUEPRINT_DATABASE_ENGINE": "postgresql",
+        "MCP_BLUEPRINT_DATABASE_URL": "postgresql://pgbench@localhost:5432/pgbench"
+      }
+    },
+    "mysql-dba": {
+      "type": "local",
+      "command": ["/absolute/path/to/mcp-blueprint/.venv/bin/blueprint", "serve", "--config", "config", "--transport", "stdio"],
+      "cwd": "/absolute/path/to/mcp-blueprint",
+      "environment": {
+        "MCP_BLUEPRINT_DATABASE_ENGINE": "mysql",
+        "MCP_BLUEPRINT_DATABASE_URL": "mysql://monitor:password@localhost:3306/mydb"
+      }
+    }
+  }
+}
+```
+
+Each server loads only the pack matching its engine, while exposing the same
+11 tool names.  Restart the MCP client after changing its configuration.
 
 ## 4. Run the server over Streamable HTTP
 
