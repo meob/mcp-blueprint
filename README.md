@@ -243,7 +243,7 @@ Every pack is independent.
 # Reference packs
 
 The reference implementations are two independent administration packs with
-the **same 11 tools**: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
+the **same 12 tools**: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
 (MySQL 8+).  Each is single-engine (`engines: [postgresql]` / `engines: [mysql]`
 in `pack.yaml`), self-contained and can evolve independently with engine-specific
 tools.
@@ -264,6 +264,7 @@ Detail tools:
 
 - users and roles
 - database sizes
+- database version
 - largest objects
 - replication status
 - tuning configuration

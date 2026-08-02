@@ -155,11 +155,11 @@ def test_app_loads_only_engine_matching_packs() -> None:
         database=DatabaseConfig(engine="mysql", dsn="mysql://localhost/app"),
     )
     app = Blueprint(config=config)
-    assert app.load_packs() == 11
+    assert app.load_packs() == 12
     assert {tool.pack_name for tool in app.registry.all()} == {"mysql-dba"}
 
     postgres = Blueprint(config_path=str(project_root / "config"))
-    assert postgres.load_packs() == 11
+    assert postgres.load_packs() == 12
     assert {tool.pack_name for tool in postgres.registry.all()} == {"pg-dba"}
 
 

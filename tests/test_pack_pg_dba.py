@@ -22,6 +22,7 @@ EXPECTED_TOOLS = {
     "get_security_kpis",
     "get_users",
     "get_database_sizes",
+    "get_database_version",
     "get_largest_objects",
     "get_replication_status",
     "get_tuning_configuration",
@@ -74,6 +75,17 @@ async def test_detail_tools_are_ordered_and_limited(blueprint: Blueprint) -> Non
     sizes = [row["size_bytes"] for row in result["rows"]]
     assert sizes == sorted(sizes, reverse=True)
     assert len(result["rows"]) <= 32
+
+
+async def test_database_version_returns_three_columns(blueprint: Blueprint) -> None:
+    result = await blueprint.pipeline.execute("get_database_version", {})
+    assert result["row_count"] == 1
+    row = result["rows"][0]
+    assert set(row) == {"version", "version_number", "full_version"}
+    parts = row["version"].split(".")
+    assert len(parts) >= 2 and all(p.isdigit() for p in parts)
+    assert str(row["version_number"]).isdigit()
+    assert row["version"] in row["full_version"]
 
 
 async def test_stdlib_server_registers_tools(blueprint: Blueprint) -> None:

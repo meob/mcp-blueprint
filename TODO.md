@@ -170,7 +170,7 @@ Checkboxes track the current MVP status.
 # Reference DBA Packs
 
 The reference implementations are two independent, single-engine packs that
-expose the same 11 tools: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
+expose the same 12 tools: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
 (MySQL 8+).  The engine is declared in `pack.yaml` (`engines: [postgresql]` /
 `engines: [mysql]`); the configured engine selects which pack loads.  Each pack
 is a complete, copyable example of a Blueprint customization.
@@ -189,6 +189,7 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 * [x] get_users()
 * [x] get_database_sizes()
+* [x] get_database_version()
 * [x] get_largest_objects()
 * [x] get_replication_status()
 * [x] get_tuning_configuration()
@@ -243,7 +244,7 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 # MySQL DBA Pack
 
-* [x] Covered by `packs/mysql-dba` (11 tools on MySQL 8)
+* [x] Covered by `packs/mysql-dba` (12 tools on MySQL 8)
 
 ---
 

@@ -347,7 +347,7 @@ reduce round-trips.  The reference packs are deliberately separate and
 single-engine so they can evolve independently (PostgreSQL-only and
 MySQL-only tools) and act as complete, copyable examples of a Blueprint
 customization.  Both are validated with least-privilege monitoring users,
-proving the engine-aware loading: the same 11 tool names are exposed on both
+proving the engine-aware loading: the same 12 tool names are exposed on both
 engines by two distinct packs.
 
 PostgreSQL 12 and 13 reached end-of-life and several relevant columns (e.g.

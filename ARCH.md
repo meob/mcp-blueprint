@@ -272,7 +272,7 @@ The reference packs keep the common case simple: each is single-engine, so its
 tools use a plain `sql` path and the pack-level `engines` decides availability.
 
 The reference packs are `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
-(MySQL 8+).  They expose the same 11 tool names and are developed independently:
+(MySQL 8+).  They expose the same 12 tool names and are developed independently:
 each is a complete, copyable example of a Blueprint customization.
 
 ---

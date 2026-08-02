@@ -116,7 +116,7 @@ environment overrides.  The following OpenCode configuration exposes the
 ```
 
 Each server loads only the pack matching its engine, while exposing the same
-11 tool names.  Restart the MCP client after changing its configuration.
+12 tool names.  Restart the MCP client after changing its configuration.
 
 ## 4. Run the server over Streamable HTTP
 
