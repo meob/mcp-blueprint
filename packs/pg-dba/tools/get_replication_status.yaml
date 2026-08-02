@@ -1,0 +1,7 @@
+name: get_replication_status
+description: Return the replication status of every connected standby server.
+
+sql: ../sql/get_replication_status.sql
+
+cache:
+  ttl: 10

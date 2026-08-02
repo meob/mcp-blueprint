@@ -1,0 +1,9 @@
+server:
+  name: mcp-blueprint
+  transport: stdio
+  host: 127.0.0.1
+  port: 8000
+  log_level: info
+  default_ttl: 30
+  cache_maxsize: 256
+  packs_dir: packs

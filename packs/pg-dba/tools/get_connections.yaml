@@ -1,0 +1,13 @@
+name: get_connections
+description: Return connected database sessions with their state and wait events.
+
+parameters:
+  database:
+    type: string
+    required: false
+    description: Optional database name filter.
+
+sql: ../sql/get_connections.sql
+
+cache:
+  ttl: 5

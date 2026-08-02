@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "pg-dba": {
+      "command": "/absolute/path/to/mcp-blueprint/.venv/bin/blueprint",
+      "args": ["serve", "--config", "config", "--transport", "stdio"],
+      "cwd": "/absolute/path/to/mcp-blueprint"
+    }
+  }
+}

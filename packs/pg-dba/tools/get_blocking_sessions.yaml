@@ -1,0 +1,13 @@
+name: get_blocking_sessions
+description: Return sessions that currently block other sessions.
+
+parameters:
+  database:
+    type: string
+    required: false
+    description: Optional database name filter.
+
+sql: ../sql/get_blocking_sessions.sql
+
+cache:
+  ttl: 5

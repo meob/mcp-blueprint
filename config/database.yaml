@@ -1,0 +1,7 @@
+database:
+  engine: postgresql
+  dsn: ${MCP_BLUEPRINT_DATABASE_URL:-postgresql://meo@localhost:5432/pgbench}
+  pool:
+    min_size: 1
+    max_size: 10
+    timeout: 30.0
