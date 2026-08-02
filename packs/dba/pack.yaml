@@ -1,0 +1,6 @@
+name: dba
+version: 0.3.0
+description: >-
+  Cross-database administration pack.  KPI dashboards (operational,
+  performance, security) and detail tools for users, storage, replication,
+  statements and maintenance.  Supports PostgreSQL 14+ and MySQL 8+.

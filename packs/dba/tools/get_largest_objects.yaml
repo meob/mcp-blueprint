@@ -1,0 +1,8 @@
+name: get_largest_objects
+description: >-
+  Return the largest tables and indexes by size, ordered descending.
+sql:
+  postgresql: ../sql/postgresql/get_largest_objects.sql
+  mysql: ../sql/mysql/get_largest_objects.sql
+cache:
+  ttl: 60

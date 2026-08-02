@@ -1,0 +1,17 @@
+name: get_items
+description: Example tool that lists the items exposed by this pack.
+parameters:
+  limit:
+    type: integer
+    required: false
+    default: 50
+    description: Maximum number of rows to return.
+  min_rows:
+    type: integer
+    required: false
+    default: null
+    description: Only return items with at least this many rows.
+sql:
+  postgresql: ../sql/postgresql/get_items.sql
+cache:
+  ttl: 30

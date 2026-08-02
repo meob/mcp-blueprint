@@ -1,0 +1,9 @@
+name: get_slow_queries
+description: >-
+  Return the statements with the highest total execution time, with call
+  counts and average/maximum duration, ordered by cumulative time.
+sql:
+  postgresql: ../sql/postgresql/get_slow_queries.sql
+  mysql: ../sql/mysql/get_slow_queries.sql
+cache:
+  ttl: 30

@@ -1,0 +1,9 @@
+name: get_maintenance_status
+description: >-
+  Return maintenance status such as fragmented tables needing optimization,
+  stale vacuum/analyze activity or long-running maintenance operations.
+sql:
+  postgresql: ../sql/postgresql/get_maintenance_status.sql
+  mysql: ../sql/mysql/get_maintenance_status.sql
+cache:
+  ttl: 30
