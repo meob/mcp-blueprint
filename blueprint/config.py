@@ -17,6 +17,7 @@ import structlog
 import yaml
 from pydantic import BaseModel, Field, field_validator
 
+from blueprint.engines import SUPPORTED_ENGINES
 from blueprint.errors import ConfigurationError
 
 logger = structlog.get_logger(__name__)
@@ -80,9 +81,16 @@ class DatabaseConfig(BaseModel):
     @field_validator("engine")
     @classmethod
     def _validate_engine(cls, value: str) -> str:
-        if value not in {"postgresql", "postgres"}:
+        if value not in SUPPORTED_ENGINES and value not in {"postgres"}:
             raise ValueError(f"unsupported engine: {value}")
         return value
+
+    @property
+    def engine_id(self) -> str:
+        """Return the canonical engine identifier used by tool metadata."""
+        from blueprint.engines import canonical_engine
+
+        return canonical_engine(self.engine)
 
     @field_validator("dsn")
     @classmethod

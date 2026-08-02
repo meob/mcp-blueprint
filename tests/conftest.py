@@ -13,6 +13,8 @@ from blueprint.tools.model import ToolMetadata
 class FakeAdapter(DatabaseAdapter):
     """In-memory adapter that records executed SQL and returns canned rows."""
 
+    engine = "postgresql"
+
     def __init__(self, rows: list[dict[str, Any]] | None = None) -> None:
         self.rows = rows or []
         self.executed: list[tuple[str, dict[str, Any]]] = []

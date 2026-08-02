@@ -60,7 +60,9 @@ class Blueprint:
             tools_dir = pack_dir / "tools"
             if not tools_dir.is_dir():
                 continue
-            tools = load_tools_from_dir(tools_dir, pack_name=pack_dir.name)
+            tools = load_tools_from_dir(
+                tools_dir, pack_name=pack_dir.name, engine=self.config.database.engine_id
+            )
             self.registry.register_many(tools)
             count += len(tools)
             self.logger.info("pack_loaded", pack=pack_dir.name, tools=len(tools))
@@ -69,7 +71,11 @@ class Blueprint:
     def load_pack(self, pack_dir: str | Path) -> int:
         """Register tools from a single pack directory."""
         directory = Path(pack_dir)
-        tools = load_tools_from_dir(directory / "tools", pack_name=directory.name)
+        tools = load_tools_from_dir(
+            directory / "tools",
+            pack_name=directory.name,
+            engine=self.config.database.engine_id,
+        )
         self.registry.register_many(tools)
         self.logger.info("pack_loaded", pack=directory.name, tools=len(tools))
         return len(tools)

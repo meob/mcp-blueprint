@@ -53,6 +53,14 @@ class ToolPipeline:
 
             raise ToolDisabledError(f"tool is disabled: {tool_name}")
 
+        sql_path = metadata.sql_for(self._adapter.engine)
+        if sql_path is None:
+            from blueprint.errors import ToolNotFoundError
+
+            raise ToolNotFoundError(
+                f"tool is not available for engine {self._adapter.engine}: {tool_name}"
+            )
+
         params = validate_parameters(metadata, raw_params)
         cache_key = (metadata.name, tuple(sorted(params.items())))
 
@@ -61,7 +69,7 @@ class ToolPipeline:
             logger.info("tool_cache_hit", tool=tool_name)
             return self._response(metadata.name, cached, started, cache_hit=True)
 
-        sql = self._sql_loader.load(metadata.sql, metadata.source)
+        sql = self._sql_loader.load(sql_path, metadata.source)
         sql = self._renderer.render(sql, params)
         logger.debug("tool_executing", tool=tool_name, sql=sql)
 

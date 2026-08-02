@@ -16,6 +16,9 @@ from blueprint.errors import AdapterNotFoundError
 class DatabaseAdapter(ABC):
     """Common interface implemented by every database engine adapter."""
 
+    engine: str = ""
+    """Canonical engine identifier (e.g. ``postgresql``)."""
+
     @abstractmethod
     async def execute(self, sql: str, params: dict[str, Any]) -> list[dict[str, Any]]:
         """Execute ``sql`` with ``params`` and return rows as dicts.
@@ -40,8 +43,13 @@ class DatabaseAdapter(ABC):
 
 def create_adapter(config: DatabaseConfig) -> DatabaseAdapter:
     """Create the adapter matching ``config.engine``."""
-    if config.engine in {"postgresql", "postgres"}:
+    engine = config.engine_id
+    if engine == "postgresql":
         from blueprint.db.postgres import PostgresAdapter
 
         return PostgresAdapter(config)
+    if engine == "mysql":
+        from blueprint.db.mysql import MySQLAdapter
+
+        return MySQLAdapter(config)
     raise AdapterNotFoundError(f"no adapter for engine: {config.engine}")

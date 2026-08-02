@@ -64,7 +64,8 @@ def test_missing_file_raises(tmp_path) -> None:
 def test_load_config_from_directory(tmp_path) -> None:
     (tmp_path / "server.yaml").write_text("server:\n  name: my-server\n", encoding="utf-8")
     (tmp_path / "database.yaml").write_text(
-        "database:\n  engine: postgresql\n  dsn: postgresql://meo@localhost/db\n", encoding="utf-8"
+        "database:\n  engine: postgresql\n  dsn: postgresql://pgbench@localhost/db\n",
+        encoding="utf-8",
     )
     (tmp_path / "logging.yaml").write_text("logging:\n  level: debug\n", encoding="utf-8")
     config = load_config(tmp_path)

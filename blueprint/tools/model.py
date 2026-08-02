@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from blueprint.engines import SUPPORTED_ENGINES
 
 ParameterType = Literal["string", "integer", "number", "boolean"]
 
@@ -73,7 +75,8 @@ class ToolMetadata(BaseModel):
     name: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
     description: str = ""
     parameters: dict[str, ParameterSpec] = Field(default_factory=dict)
-    sql: str
+    sql: str | dict[str, str]
+    engines: list[str] = Field(default_factory=list)
     cache: CacheConfig | None = None
     roles: list[str] = Field(default_factory=list)
     enabled: bool = True
@@ -81,3 +84,46 @@ class ToolMetadata(BaseModel):
     format: FormatConfig | None = None
     pack_name: str = ""
     source: str = ""
+
+    @field_validator("engines")
+    @classmethod
+    def _validate_engines(cls, value: list[str]) -> list[str]:
+        seen: set[str] = set()
+        for engine in value:
+            if not engine or engine in seen:
+                raise ValueError(f"duplicate or empty engine: {engine!r}")
+            if engine not in SUPPORTED_ENGINES:
+                raise ValueError(f"unsupported engine: {engine}")
+            seen.add(engine)
+        return value
+
+    @field_validator("sql")
+    @classmethod
+    def _validate_sql(cls, value: str | dict[str, str]) -> str | dict[str, str]:
+        if isinstance(value, dict):
+            if not value:
+                raise ValueError("sql mapping must not be empty")
+            for engine, path in value.items():
+                if engine not in SUPPORTED_ENGINES:
+                    raise ValueError(f"unsupported sql engine: {engine}")
+                if not path:
+                    raise ValueError(f"sql path is empty for engine {engine}")
+        return value
+
+    @model_validator(mode="after")
+    def _check_engines_sql_consistency(self) -> ToolMetadata:
+        if isinstance(self.sql, dict) and self.engines and set(self.engines) != set(self.sql):
+            raise ValueError("engines must match the sql mapping keys when both are given")
+        return self
+
+    def applies_to(self, engine: str) -> bool:
+        """Whether this tool is available for the given engine."""
+        if isinstance(self.sql, dict):
+            return engine in self.sql
+        return not self.engines or engine in self.engines
+
+    def sql_for(self, engine: str) -> str | None:
+        """Return the SQL path for ``engine``, or ``None`` when not applicable."""
+        if isinstance(self.sql, dict):
+            return self.sql.get(engine)
+        return self.sql if self.applies_to(engine) else None
