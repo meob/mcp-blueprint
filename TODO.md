@@ -73,7 +73,8 @@ Checkboxes track the current MVP status.
 * [x] Query execution
 * [ ] Transaction management
 * [x] Connection pooling
-* [x] Engine-aware tool loading (`engines`, per-engine `sql` map)
+* [x] Engine-aware pack loading (pack-level `engines`; per-tool `sql` map
+      override)
 
 ---
 
@@ -166,12 +167,13 @@ Checkboxes track the current MVP status.
 
 ---
 
-# DBA Pack
+# Reference DBA Packs
 
-The DBA pack (`packs/dba`, formerly `packs/pg-dba`) is the reference
-implementation for the framework.  It is cross-database: tools declare the
-engines they support via a per-engine `sql` map and are filtered at load time
-by the configured engine.  Supported engines: PostgreSQL 14+ and MySQL 8+.
+The reference implementations are two independent, single-engine packs that
+expose the same 11 tools: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
+(MySQL 8+).  The engine is declared in `pack.yaml` (`engines: [postgresql]` /
+`engines: [mysql]`); the configured engine selects which pack loads.  Each pack
+is a complete, copyable example of a Blueprint customization.
 
 ## KPI dashboards
 
@@ -191,8 +193,8 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 * [x] get_replication_status()
 * [x] get_tuning_configuration()
 * [x] get_slow_queries()
-* [x] get_maintenance_status() (cross-engine)
-* [x] get_index_health() (postgres-only)
+* [x] get_maintenance_status()
+* [x] get_index_health()
 
 ---
 
@@ -223,7 +225,7 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 ## Next pack: Sakila
 
-* [ ] Create `packs/sakila` from the template (or the DBA pack layout)
+* [ ] Create `packs/sakila` from the template (or a reference pack layout)
 
 ---
 
@@ -241,7 +243,7 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 # MySQL DBA Pack
 
-* [x] Covered by the cross-engine `dba` pack (11 tools on MySQL 8)
+* [x] Covered by `packs/mysql-dba` (11 tools on MySQL 8)
 
 ---
 

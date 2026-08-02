@@ -275,7 +275,8 @@ without modifying the framework itself.
 
 ### Decision
 
-The first pack is the DBA pack (`packs/dba`, formerly `packs/pg-dba`), a cross-database administration pack.
+The first packs are the reference DBA packs: `packs/pg-dba` (PostgreSQL) and
+`packs/mysql-dba` (MySQL).
 
 ### Rationale
 
@@ -287,24 +288,25 @@ The same architectural model can later be applied to Oracle, MySQL and business-
 
 # Decision 14
 
-## Tools are engine-aware
+## Packs are engine-aware
 
 ### Decision
 
-Each tool declares which engines it supports.  Two mechanisms, both optional:
-
-* `sql` as a map keyed by engine (`postgresql`, `mysql`, `oracle`)
-* a shared `sql` path restricted by an explicit `engines` list
-
-Tools that cannot run on the configured engine (from `database.engine`) are
-skipped at load time.
+The engine is declared once at pack level in `pack.yaml` (e.g.
+`engines: [postgresql]`); packs that do not match the configured engine are
+skipped at load time.  When `engines` is absent the pack is engine-agnostic.
+A tool may still override per-tool, via a `sql` map keyed by engine or a shared
+`sql` path with an `engines` list, for packs that genuinely share a tool across
+engines.
 
 ### Rationale
 
-The same logical tool (replication, users, storage) needs different SQL per
-DBMS.  Tagging tools by engine keeps one pack usable across engines while
-preventing SQL dialect errors.  The agent still sees a stable interface
-regardless of the underlying database.
+Declaring the engine once per pack keeps the common case (one pack, one
+engine) simple, while the tool-level override remains available for future
+multi-engine packs.  The configured engine (`database.engine`) selects both
+the adapter and the packs that contribute tools, so loading is deterministic
+and dialect errors are prevented by construction.  The agent still sees a
+stable tool interface regardless of the underlying database.
 
 ---
 
@@ -316,7 +318,7 @@ regardless of the underlying database.
 
 `template/pack` is a minimal skeleton (pack metadata, one example tool, one
 example SQL file) and is **not** auto-loaded by the framework.  Concrete packs
-live in `packs/` (e.g. `packs/dba`).
+live in `packs/` (e.g. `packs/pg-dba`).
 
 ### Rationale
 
@@ -328,22 +330,25 @@ Keeping the template free of domain content makes it stable and reusable.
 
 # Decision 16
 
-## KPI-based pack tools, minimum PostgreSQL 14
+## KPI-based reference packs
 
 ### Decision
 
-The `dba` pack exposes three KPI dashboards (operational, performance,
-security) that always return rows with a `status` of `ok`/`warning`/`error`,
-plus detail tools (users, largest objects, slow queries, index health).
-Supported engines: PostgreSQL 14+ and MySQL 8+.
+`packs/pg-dba` and `packs/mysql-dba` expose the same three KPI dashboards
+(operational, performance, security) that always return rows with a `status`
+of `ok`/`warning`/`error`, plus the same detail tools (users, largest objects,
+slow queries, index health).  They are two independent, single-engine packs:
+PostgreSQL 14+ and MySQL 8+.
 
 ### Rationale
 
 KPI rows with a computed `status` give the agent an immediate diagnosis and
-reduce round-trips.  The framework is validated against PostgreSQL 14+ and
-MySQL 8+ (both with least-privilege monitoring users), proving the
-engine-aware tool loading: the same YAML pack exposes the same tool names on
-both engines, with only the SQL file changing.
+reduce round-trips.  The reference packs are deliberately separate and
+single-engine so they can evolve independently (PostgreSQL-only and
+MySQL-only tools) and act as complete, copyable examples of a Blueprint
+customization.  Both are validated with least-privilege monitoring users,
+proving the engine-aware loading: the same 11 tool names are exposed on both
+engines by two distinct packs.
 
 PostgreSQL 12 and 13 reached end-of-life and several relevant columns (e.g.
 `total_exec_time` in `pg_stat_statements`) were renamed in PostgreSQL 14;

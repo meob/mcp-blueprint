@@ -16,7 +16,9 @@ database:
   dsn: ${MCP_BLUEPRINT_DATABASE_URL:-postgresql://pgbench@localhost:5432/pgbench}
 ```
 
-The same pack runs on MySQL by switching the engine and DSN:
+The engine also selects the pack: with `engine: postgresql` the `pg-dba` pack
+loads; with `engine: mysql` the `mysql-dba` pack loads.  The two packs expose
+the same tool names.
 
 ```yaml
 database:
@@ -57,7 +59,7 @@ Register it in OpenCode by adding to your MCP configuration:
 ```json
 {
   "mcpServers": {
-    "dba": {
+    "pg-dba": {
       "command": "uv",
       "args": ["run", "blueprint", "serve", "--config", "config", "--transport", "stdio"],
       "cwd": "/absolute/path/to/mcp-blueprint"
@@ -71,7 +73,7 @@ For Claude Desktop, the equivalent entry is:
 ```json
 {
   "mcpServers": {
-    "dba": {
+    "pg-dba": {
       "command": "/absolute/path/to/mcp-blueprint/.venv/bin/blueprint",
       "args": ["serve", "--config", "config", "--transport", "stdio"],
       "cwd": "/absolute/path/to/mcp-blueprint"
@@ -93,7 +95,7 @@ Register it in OpenCode:
 ```json
 {
   "mcpServers": {
-    "dba": {
+    "pg-dba": {
       "url": "http://127.0.0.1:8000/mcp"
     }
   }

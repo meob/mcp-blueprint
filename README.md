@@ -151,14 +151,15 @@ Example:
 ```
 packs/
 
-    dba/
+    pg-dba/
 
         tools/
 
         sql/
-            postgresql/
 
-        config/
+        pack.yaml
+
+    mysql-dba/
 
     sakila/
 
@@ -167,10 +168,12 @@ packs/
     warehouse/
 ```
 
-Tools declare the engines they support: a per-engine `sql` map (or a shared
-`sql` path with an `engines` list).  Only the tools that can run on the
-configured engine are loaded.  `template/pack` provides a minimal skeleton for
-authoring new packs and is not auto-loaded.
+The engine is declared once per pack in `pack.yaml` (e.g.
+`engines: [postgresql]`); packs that do not match the configured engine are
+skipped, so `database.engine` selects both the adapter and the loaded packs.
+A tool may still override per-engine via a `sql` map for packs that share a
+tool across engines.  `template/pack` provides a minimal skeleton for authoring
+new packs and is not auto-loaded.
 
 ---
 
@@ -237,16 +240,19 @@ Every pack is independent.
 
 ---
 
-# DBA Pack
+# Reference packs
 
-The first reference implementation is the **DBA pack** (`packs/dba`, formerly
-`packs/pg-dba`), a cross-database administration pack supporting
-**PostgreSQL 14+** and **MySQL 8+**.  Each tool ships one SQL file per engine
-under `sql/postgresql/` and `sql/mysql/`; the tool interface is identical on
-both engines.
+The reference implementations are two independent administration packs with
+the **same 11 tools**: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
+(MySQL 8+).  Each is single-engine (`engines: [postgresql]` / `engines: [mysql]`
+in `pack.yaml`), self-contained and can evolve independently with engine-specific
+tools.
 
-It contains ready-to-use tools for database administration, split into KPI
-dashboards and detail tools.
+With `database.engine: postgresql` only `pg-dba` loads; with
+`database.engine: mysql` only `mysql-dba` loads.
+
+Each pack contains ready-to-use tools for database administration, split into
+KPI dashboards and detail tools.
 
 KPI dashboards always return rows with a `status` of `ok`/`warning`/`error`:
 
@@ -265,7 +271,7 @@ Detail tools:
 - maintenance status
 - index health
 
-The pack does not expose SQL execution.
+The packs do not expose SQL execution.
 
 Only curated DBA operations.  All tools work with least-privilege monitoring
 users (e.g. the `pg_monitor` role on PostgreSQL).
@@ -277,7 +283,7 @@ users (e.g. the `pg_monitor` role on PostgreSQL).
 `template/pack` is the minimal skeleton for a new pack (pack metadata, one
 example tool, one example SQL query).  It is not auto-loaded by the framework.
 To start a new domain pack, copy the template or an existing pack such as
-`packs/dba` and replace tool names, descriptions and SQL.  See
+`packs/pg-dba` and replace tool names, descriptions and SQL.  See
 `template/README.md`.
 
 ---

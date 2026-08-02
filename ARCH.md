@@ -233,9 +233,24 @@ Could be applied to NoSQL database too, SQL is replaced by queries in the requir
 
 ---
 
-# Engine-Aware Tool Loading
+# Engine-Aware Pack Loading
 
-Each tool declares the engines it supports.  Two mechanisms, both optional:
+The engine is declared once, at pack level, in `pack.yaml`:
+
+```yaml
+# packs/pg-dba/pack.yaml
+name: pg-dba
+engines: [postgresql]
+```
+
+When `engines` is absent the pack is engine-agnostic and loads on every engine.
+Packs whose declared engines do not match the configured engine (from
+`database.engine`) are skipped at registration time.  The configured engine
+therefore selects both the database adapter and the packs that contribute
+tools.
+
+A tool may still restrict or map engines per-tool, overriding the pack default,
+when a single pack genuinely shares a tool across engines:
 
 * `sql` as a **map keyed by engine**: the tool exists for an engine only when
   it has a SQL entry for it:
@@ -253,13 +268,12 @@ Each tool declares the engines it supports.  Two mechanisms, both optional:
   sql: ../sql/get_vacuum_status.sql
   ```
 
-Tools that cannot run on the configured engine (from
-`database.engine`) are skipped at registration time.  This lets one pack expose
-the same logical tool (replication, users, storage) across engines while
-keeping a separate SQL file per engine.
+The reference packs keep the common case simple: each is single-engine, so its
+tools use a plain `sql` path and the pack-level `engines` decides availability.
 
-The `dba` pack ships SQL for PostgreSQL (`sql/postgresql/`) and MySQL
-(`sql/mysql/`); the same tool interface is exposed on both engines.
+The reference packs are `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
+(MySQL 8+).  They expose the same 11 tool names and are developed independently:
+each is a complete, copyable example of a Blueprint customization.
 
 ---
 
@@ -267,25 +281,37 @@ The `dba` pack ships SQL for PostgreSQL (`sql/postgresql/`) and MySQL
 
 SQL is always external.
 
-Example:
+A single-engine pack stores one SQL file per tool in its own `sql/` directory:
 
 ```
-sql/
+packs/pg-dba/sql/
+
+    get_connections.sql
+    get_database_size.sql
+    get_blocking_sessions.sql
+```
+
+Tools point at their SQL file:
+
+```yaml
+sql: ../sql/get_connections.sql
+```
+
+A multi-engine pack stores one SQL file per engine and maps per-tool:
+
+```
+packs/audit/sql/
 
     postgresql/
-        get_connections.sql
-        get_database_size.sql
-        get_blocking_sessions.sql
+        get_users.sql
 
-    mysql/                  # future
-        get_connections.sql
+    mysql/
+        get_users.sql
 ```
-
-Tools point at the file matching the configured engine:
 
 ```yaml
 sql:
-  postgresql: ../sql/postgresql/get_connections.sql
+  postgresql: ../sql/postgresql/get_users.sql
 ```
 
 Benefits:
@@ -348,8 +374,9 @@ The framework loads and registers tools automatically.
 
 # KPI-Based Tools
 
-Diagnostic packs (e.g. the `dba` pack) expose KPI dashboards rather than raw
-catalog listings.  A KPI tool always returns rows with the shape:
+Diagnostic packs (e.g. `packs/pg-dba` and `packs/mysql-dba`) expose KPI
+dashboards rather than raw catalog listings.  A KPI tool always returns rows
+with the shape:
 
 ```yaml
 kpi_name: connection_slots_used
@@ -376,10 +403,10 @@ template/pack/
     sql/
 ```
 
-It is **not** auto-loaded by the framework.  A concrete pack (e.g. `packs/dba`)
-is created by copying the template and filling in tool names, descriptions and
-SQL queries.  The separation keeps the template free of domain content while
-packs remain self-contained and installable.
+It is **not** auto-loaded by the framework.  A concrete pack (e.g.
+`packs/pg-dba`) is created by copying the template and filling in tool names,
+descriptions and SQL queries.  The separation keeps the template free of
+domain content while packs remain self-contained and installable.
 
 ---
 

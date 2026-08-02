@@ -18,8 +18,20 @@ packs/
 ```yaml
 name: my-pack
 version: 1.0.0
+engines: [postgresql]
 description: Describe the domain this pack covers.
 ```
+
+| Field         | Type            | Description                                        |
+| ------------- | --------------- | -------------------------------------------------- |
+| `name`        | string          | Pack name.                                         |
+| `version`     | string          | Pack version.                                      |
+| `engines`     | list of strings | Optional; restricts the pack to these engines.     |
+| `description` | string          | Short description of the pack domain.              |
+
+When `engines` is present, the pack is loaded only if the configured engine
+(`database.engine`) is listed.  When absent, the pack loads on every engine.
+The pack manifest is optional: a pack without `pack.yaml` is engine-agnostic.
 
 ## Tool definition
 
@@ -54,9 +66,28 @@ format:
     - internal_id
 ```
 
+### Engine declaration
+
+The engine of a pack is declared once in `pack.yaml`:
+
+```yaml
+# packs/my-pack/pack.yaml
+name: my-pack
+engines: [postgresql]
+```
+
+Tools in a single-engine pack use a plain `sql` path:
+
+```yaml
+name: get_users
+description: List database users.
+sql: ../sql/get_users.sql
+```
+
 ### Multi-engine tools
 
-A tool is engine-aware when its SQL differs per engine.  Two forms:
+A pack can share a tool across engines when its SQL differs per engine.  Two
+per-tool forms override the pack default:
 
 **`sql` as a map keyed by engine** — the tool exists for an engine only when it
 has a SQL entry for it:
@@ -81,9 +112,9 @@ engines: [postgresql]
 sql: ../sql/get_maintenance_status.sql
 ```
 
-At load time the framework keeps only the tools that can run on the configured
-engine (`database.engine`).  Supported canonical engine identifiers are
-`postgresql`, `mysql` and `oracle` (with `postgres` accepted as an alias).
+At load time the framework keeps only the packs and tools that can run on the
+configured engine (`database.engine`).  Supported canonical engine identifiers
+are `postgresql`, `mysql` and `oracle` (with `postgres` accepted as an alias).
 
 ### Fields
 
@@ -144,12 +175,23 @@ packs/my-pack/sql/get_customer.sql
 
 is referenced with `sql: ../sql/get_customer.sql`.
 
-### Per-engine SQL layout
+### SQL layout
+
+Single-engine packs store one SQL file per tool at the top level of `sql/`:
+
+```
+packs/my-pack/
+    pack.yaml
+    tools/
+        get_users.yaml
+    sql/
+        get_users.sql
+```
 
 Multi-engine packs store one SQL file per engine:
 
 ```
-packs/dba/
+packs/audit/
     pack.yaml
     tools/
         get_users.yaml
@@ -190,12 +232,11 @@ template/pack/
     tools/
         get_items.yaml
     sql/
-        postgresql/
-            get_items.sql
+        get_items.sql
 ```
 
 It is **not** auto-loaded by the framework.  Create a new pack by copying the
-template (or an existing pack such as `packs/dba`) and replacing tool names,
+template (or an existing pack such as `packs/pg-dba`) and replacing tool names,
 descriptions and SQL queries.  See `template/README.md` for the workflow.
 
 ## Adding a new tool
