@@ -1,0 +1,5 @@
+name: get_index_health
+description: Return index health issues such as invalid or unused indexes.
+sql: ../sql/get_index_health.sql
+cache:
+  ttl: 30

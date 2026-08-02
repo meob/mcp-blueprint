@@ -15,9 +15,9 @@ class SQLLoader:
     """Loads SQL files, caching their content by absolute path.
 
     Relative paths are resolved against the tool definition file location, so
-    a tool with ``source: /packs/dba/tools/get_users.yaml`` and
-    ``sql: ../sql/postgresql/get_users.sql`` loads
-    ``/packs/dba/sql/postgresql/get_users.sql``.
+    a tool with ``source: /packs/pg-dba/tools/get_users.yaml`` and
+    ``sql: ../sql/get_users.sql`` loads
+    ``/packs/pg-dba/sql/get_users.sql``.
     """
 
     def __init__(self) -> None:

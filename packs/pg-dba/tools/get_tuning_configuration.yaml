@@ -1,0 +1,6 @@
+name: get_tuning_configuration
+description: Return the most relevant tuning parameters (buffers, redo log, replication, concurrency,
+  timeouts) with their current value and unit, ordered by name.
+sql: ../sql/get_tuning_configuration.sql
+cache:
+  ttl: 300

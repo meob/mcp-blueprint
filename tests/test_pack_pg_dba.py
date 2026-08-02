@@ -1,4 +1,4 @@
-"""Integration tests against a live PostgreSQL instance.
+"""Integration tests for the pg-dba pack against a live PostgreSQL instance.
 
 These tests are skipped when the database is not reachable.  The target
 connection is taken from the ``MCP_BLUEPRINT_DATABASE_URL`` environment

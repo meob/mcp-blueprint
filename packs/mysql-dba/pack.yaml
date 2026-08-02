@@ -1,0 +1,7 @@
+name: mysql-dba
+version: 0.3.0
+engines: [mysql]
+description: >-
+  MySQL administration pack.  KPI dashboards (operational, performance,
+  security) and detail tools for users, storage, replication, statements and
+  maintenance.  Requires MySQL 8+.

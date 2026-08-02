@@ -11,7 +11,6 @@ parameters:
     required: false
     default: null
     description: Only return items with at least this many rows.
-sql:
-  postgresql: ../sql/postgresql/get_items.sql
+sql: ../sql/get_items.sql
 cache:
   ttl: 30

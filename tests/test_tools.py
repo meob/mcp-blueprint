@@ -143,7 +143,7 @@ def test_load_tools_from_dir_filters_by_engine(tmp_path) -> None:
     assert [t.name for t in tools] == ["tool_b"]
 
 
-def test_app_loads_only_engine_matching_tools() -> None:
+def test_app_loads_only_engine_matching_packs() -> None:
     from pathlib import Path
 
     from blueprint.app import Blueprint
@@ -156,9 +156,11 @@ def test_app_loads_only_engine_matching_tools() -> None:
     )
     app = Blueprint(config=config)
     assert app.load_packs() == 11
+    assert {tool.pack_name for tool in app.registry.all()} == {"mysql-dba"}
 
     postgres = Blueprint(config_path=str(project_root / "config"))
     assert postgres.load_packs() == 11
+    assert {tool.pack_name for tool in postgres.registry.all()} == {"pg-dba"}
 
 
 def test_template_pack_stays_loadable() -> None:
@@ -168,4 +170,4 @@ def test_template_pack_stays_loadable() -> None:
     tools_dir = project_root / "template" / "pack" / "tools"
     tools = load_tools_from_dir(tools_dir, pack_name="my-pack", engine="postgresql")
     assert [t.name for t in tools] == ["get_items"]
-    assert tools[0].sql_for("postgresql") == "../sql/postgresql/get_items.sql"
+    assert tools[0].sql_for("postgresql") == "../sql/get_items.sql"

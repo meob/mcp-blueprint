@@ -1,9 +1,0 @@
-name: get_database_sizes
-description: >-
-  List all databases with their size in bytes and human-readable format,
-  ordered by size descending.
-sql:
-  postgresql: ../sql/postgresql/get_database_sizes.sql
-  mysql: ../sql/mysql/get_database_sizes.sql
-cache:
-  ttl: 60

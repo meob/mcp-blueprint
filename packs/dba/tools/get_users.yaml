@@ -1,9 +1,0 @@
-name: get_users
-description: >-
-  List database accounts with their attributes (superuser, login capability,
-  create database, password status and expiry).
-sql:
-  postgresql: ../sql/postgresql/get_users.sql
-  mysql: ../sql/mysql/get_users.sql
-cache:
-  ttl: 60

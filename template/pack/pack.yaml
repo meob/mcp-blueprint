@@ -1,3 +1,4 @@
 name: my-pack
 version: 0.1.0
+engines: [postgresql]
 description: Describe your domain here.

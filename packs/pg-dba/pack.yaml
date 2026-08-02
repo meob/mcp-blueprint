@@ -1,0 +1,7 @@
+name: pg-dba
+version: 0.3.0
+engines: [postgresql]
+description: >-
+  PostgreSQL administration pack.  KPI dashboards (operational, performance,
+  security) and detail tools for users, storage, replication, statements and
+  maintenance.  Requires PostgreSQL 14+.

@@ -1,0 +1,5 @@
+name: get_database_sizes
+description: List all databases with their size in bytes and human-readable format, ordered by size descending.
+sql: ../sql/get_database_sizes.sql
+cache:
+  ttl: 60

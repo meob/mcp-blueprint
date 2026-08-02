@@ -21,6 +21,7 @@ from blueprint.db.base import DatabaseAdapter, create_adapter
 from blueprint.errors import ConfigurationError
 from blueprint.formatting import ResultFormatter
 from blueprint.logging import configure_logging
+from blueprint.pack import load_pack_metadata
 from blueprint.pipeline import ToolPipeline
 from blueprint.sql.loader import SQLLoader
 from blueprint.sql.renderer import SQLRenderer
@@ -47,12 +48,15 @@ class Blueprint:
         """Discover and register all tools from ``packs_dir``.
 
         Each subdirectory is treated as a pack; tools are loaded from its
-        ``tools`` directory.  Returns the number of registered tools.
+        ``tools`` directory.  Packs whose ``pack.yaml`` declares engines that
+        do not match the configured engine are skipped.  Returns the number of
+        registered tools.
         """
         directory = Path(packs_dir or self.config.server.packs_dir)
         if not directory.is_dir():
             raise ConfigurationError(f"packs directory not found: {directory}")
 
+        engine = self.config.database.engine_id
         count = 0
         for pack_dir in sorted(directory.iterdir()):
             if not pack_dir.is_dir():
@@ -60,17 +64,31 @@ class Blueprint:
             tools_dir = pack_dir / "tools"
             if not tools_dir.is_dir():
                 continue
-            tools = load_tools_from_dir(
-                tools_dir, pack_name=pack_dir.name, engine=self.config.database.engine_id
-            )
+            metadata = load_pack_metadata(pack_dir)
+            if not metadata.supports(engine):
+                self.logger.info("pack_skipped_for_engine", pack=pack_dir.name, engine=engine)
+                continue
+            tools = load_tools_from_dir(tools_dir, pack_name=pack_dir.name, engine=engine)
             self.registry.register_many(tools)
             count += len(tools)
             self.logger.info("pack_loaded", pack=pack_dir.name, tools=len(tools))
         return count
 
     def load_pack(self, pack_dir: str | Path) -> int:
-        """Register tools from a single pack directory."""
+        """Register tools from a single pack directory.
+
+        The pack is skipped when its ``pack.yaml`` declares engines that do not
+        match the configured engine.
+        """
         directory = Path(pack_dir)
+        metadata = load_pack_metadata(directory)
+        if not metadata.supports(self.config.database.engine_id):
+            self.logger.info(
+                "pack_skipped_for_engine",
+                pack=directory.name,
+                engine=self.config.database.engine_id,
+            )
+            return 0
         tools = load_tools_from_dir(
             directory / "tools",
             pack_name=directory.name,

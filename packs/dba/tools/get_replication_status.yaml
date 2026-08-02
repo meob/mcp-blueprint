@@ -1,9 +1,0 @@
-name: get_replication_status
-description: >-
-  Return the replication topology: instance role (primary or standby) and
-  the configured replication channels with their state.
-sql:
-  postgresql: ../sql/postgresql/get_replication_status.sql
-  mysql: ../sql/mysql/get_replication_status.sql
-cache:
-  ttl: 10

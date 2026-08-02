@@ -1,0 +1,5 @@
+name: get_largest_objects
+description: Return the largest tables and indexes by size, ordered descending.
+sql: ../sql/get_largest_objects.sql
+cache:
+  ttl: 60

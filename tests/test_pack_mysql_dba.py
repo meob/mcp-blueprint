@@ -1,4 +1,4 @@
-"""Integration tests for the dba pack against a live MySQL instance.
+"""Integration tests for the mysql-dba pack against a live MySQL instance.
 
 These tests are skipped when MySQL is not reachable.  The connection is taken
 from the ``MCP_BLUEPRINT_MYSQL_URL`` environment variable and falls back to a
