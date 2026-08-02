@@ -125,6 +125,9 @@ Checkboxes track the current MVP status.
 * [x] Conditional SQL
 * [x] Optional parameters
 * [x] SQL syntax validation
+* [ ] Every tool SQL enforces an `ORDER BY` (most significant rows first)
+      and a `LIMIT` to bound result size (`get_largest_objects` already
+      complies; audit the rest)
 
 ---
 
@@ -136,6 +139,9 @@ Checkboxes track the current MVP status.
 * [ ] Duration formatting
 * [ ] Computed columns
 * [x] Hidden columns
+* [ ] Human-readable value formatting (e.g. `1000000` -> `1M`) applied
+      consistently across engines (PostgreSQL and MySQL currently return
+      different `size` formats)
 
 ---
 
