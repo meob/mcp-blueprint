@@ -47,6 +47,7 @@ class Blueprint:
         self.cache = Cache(maxsize=self.config.server.cache_maxsize, metrics=self.metrics)
         self.formatter = ResultFormatter()
         self._adapter: DatabaseAdapter | None = None
+        self._pack_instructions: dict[str, str] = {}
 
     def load_packs(self, packs_dir: str | Path | None = None) -> int:
         """Discover and register all tools from ``packs_dir``.
@@ -81,6 +82,7 @@ class Blueprint:
             for tool in tools:
                 self._validate_tool_sql(tool)
             self.registry.register_many(tools)
+            self._pack_instructions[pack_dir.name] = metadata.instructions
             count += len(tools)
             loaded_packs += 1
             self.logger.info("pack_loaded", pack=pack_dir.name, tools=len(tools))
@@ -110,6 +112,7 @@ class Blueprint:
         for tool in tools:
             self._validate_tool_sql(tool)
         self.registry.register_many(tools)
+        self._pack_instructions[directory.name] = metadata.instructions
         self.logger.info("pack_loaded", pack=directory.name, tools=len(tools))
         self._set_server_stats(len(self.registry.all()), 1)
         return len(tools)
@@ -180,6 +183,7 @@ class Blueprint:
             host=host or self.config.server.host,
             port=port or self.config.server.port,
             metrics=self.metrics,
+            pack_instructions=self._pack_instructions,
         )
 
     async def test_connection(self) -> None:

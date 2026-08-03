@@ -23,6 +23,7 @@ class PackMetadata(BaseModel):
     name: str = ""
     version: str = ""
     description: str = ""
+    instructions: str = ""
     engines: list[str] = Field(default_factory=list)
 
     @field_validator("engines")

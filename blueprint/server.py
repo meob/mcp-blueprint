@@ -13,7 +13,7 @@ so every rejected call is still recorded as ``tool_failed``.
 from __future__ import annotations
 
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from time import perf_counter
 from typing import Any, cast
 
@@ -32,6 +32,41 @@ from blueprint.validation import validate_parameters
 logger = structlog.get_logger(__name__)
 
 Handler = Callable[..., Awaitable[dict[str, Any]]]
+
+TOOL_USAGE_NOTICE = (
+    "This server is the only supported way to interact with the database: "
+    "use its tools for all information needs and never access the database "
+    "directly or run ad-hoc SQL outside the exposed tools."
+)
+
+
+def compose_tool_description(
+    metadata: ToolMetadata, pack_instructions: Mapping[str, str] | None = None
+) -> str:
+    """Build the description sent to clients for a single tool.
+
+    The pack-level ``instructions`` from ``pack.yaml`` and the framework
+    usage notice are appended to the base tool description so that agents
+    see the guidance in every tool listing.
+    """
+    parts = [metadata.description]
+    pack = (pack_instructions or {}).get(metadata.pack_name)
+    if pack:
+        parts.append(pack)
+    parts.append(TOOL_USAGE_NOTICE)
+    return " ".join(part.strip() for part in parts if part.strip())
+
+
+def build_server_instructions(pack_instructions: Mapping[str, str] | None = None) -> str | None:
+    """Compose the server-level instructions exposed to MCP clients."""
+    sections = []
+    for pack in sorted(pack_instructions or {}):
+        text = (pack_instructions or {}).get(pack, "").strip()
+        if text:
+            sections.append(f"[{pack}]\n{text}")
+    if not sections:
+        return None
+    return f"{TOOL_USAGE_NOTICE}\n\n" + "\n\n".join(sections)
 
 
 def build_tool_function(
@@ -64,7 +99,12 @@ def build_tool_function(
     return fn
 
 
-def register_tools(mcp: FastMCP, pipeline: ToolPipeline, registry: ToolRegistry) -> int:
+def register_tools(
+    mcp: FastMCP,
+    pipeline: ToolPipeline,
+    registry: ToolRegistry,
+    pack_instructions: Mapping[str, str] | None = None,
+) -> int:
     """Register every enabled tool on the FastMCP server.
 
     Returns the number of registered tools.
@@ -76,7 +116,8 @@ def register_tools(mcp: FastMCP, pipeline: ToolPipeline, registry: ToolRegistry)
             return await pipeline.execute(_metadata.name, kwargs)
 
         fn = build_tool_function(handler, metadata)
-        mcp.add_tool(fn, name=metadata.name, description=metadata.description or metadata.name)
+        description = compose_tool_description(metadata, pack_instructions)
+        mcp.add_tool(fn, name=metadata.name, description=description)
         logger.info("tool_registered", tool=metadata.name)
         count += 1
     return count
@@ -99,8 +140,9 @@ class AuditedFastMCP(FastMCP):
         host: str = "127.0.0.1",
         port: int = 8000,
         metrics: Metrics | None = None,
+        instructions: str | None = None,
     ) -> None:
-        super().__init__(server_name, host=host, port=port)
+        super().__init__(server_name, instructions=instructions, host=host, port=port)
         self._registry = registry
         self._metrics = metrics
 
@@ -145,8 +187,16 @@ def create_server(
     host: str = "127.0.0.1",
     port: int = 8000,
     metrics: Metrics | None = None,
+    pack_instructions: Mapping[str, str] | None = None,
 ) -> FastMCP:
     """Create a FastMCP server with all enabled tools registered."""
-    mcp = AuditedFastMCP(registry, server_name, host=host, port=port, metrics=metrics)
-    register_tools(mcp, pipeline, registry)
+    mcp = AuditedFastMCP(
+        registry,
+        server_name,
+        host=host,
+        port=port,
+        metrics=metrics,
+        instructions=build_server_instructions(pack_instructions),
+    )
+    register_tools(mcp, pipeline, registry, pack_instructions)
     return mcp

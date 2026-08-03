@@ -56,7 +56,8 @@ async def test_tool_registration_schema(tmp_path) -> None:
     assert len(tools) == 1
     tool = tools[0]
     assert tool.name == "get_data"
-    assert tool.description == "Test tool."
+    assert tool.description.startswith("Test tool.")
+    assert "never access the database" in tool.description
     schema = tool.inputSchema
     database_schema = schema["properties"]["database"]
     assert database_schema["anyOf"] == [{"type": "string"}, {"type": "null"}]
