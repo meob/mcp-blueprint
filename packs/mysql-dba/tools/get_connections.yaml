@@ -1,0 +1,5 @@
+name: get_connections
+description: List the current database sessions (connected users) with their client, state and running activity.
+sql: ../sql/get_connections.sql
+cache:
+  ttl: 10

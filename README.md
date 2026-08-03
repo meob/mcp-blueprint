@@ -273,7 +273,7 @@ first to see how a domain pack is built.
 # Reference packs
 
 The reference implementations are independent administration packs with
-the **same 12 tools**: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
+the **same 13 tools**: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
 (MySQL 8+).  Each is self-contained and can evolve independently with engine-specific
 tools.
 
@@ -292,6 +292,7 @@ KPI dashboards always return rows with a `status` of `ok`/`warning`/`error`:
 Detail tools:
 
 - users and roles
+- active sessions and connections
 - database sizes
 - database version
 - largest objects

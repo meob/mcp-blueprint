@@ -33,13 +33,14 @@ uv run blueprint list-tools --config config
 ```
 
 With the default PostgreSQL engine the server exposes all engine-compatible
-packs: the four Sakila store tools plus the twelve DBA tools:
+packs: the four Sakila store tools plus the thirteen DBA tools:
 
 ```
 get_customer_rentals
 get_film
 search_customer
 search_films
+get_connections
 get_database_sizes
 get_database_version
 get_index_health
@@ -57,7 +58,7 @@ get_users
 To expose a subset per server, restrict the pack allowlist via
 `MCP_BLUEPRINT_SERVER_PACKS` (comma-separated pack names).  For example
 `MCP_BLUEPRINT_SERVER_PACKS=sakila` loads only the four Sakila tools and
-`MCP_BLUEPRINT_SERVER_PACKS=pg-dba` only the twelve DBA tools.  See
+`MCP_BLUEPRINT_SERVER_PACKS=pg-dba` only the thirteen DBA tools.  See
 `docs/pack_development.md` for details.
 
 ## 3. Run the server over stdio
@@ -167,6 +168,7 @@ The DBA tools:
 * "how is the database doing overall?" → `get_operational_kpis`
 * "any performance problems right now?" → `get_performance_kpis`
 * "are there security concerns?" → `get_security_kpis`
+* "who is connected to the database?" → `get_connections`
 * "which database is the largest?" → `get_database_sizes`
 * "what are the slowest statements?" → `get_slow_queries`
 * "are indexes healthy?" → `get_index_health`

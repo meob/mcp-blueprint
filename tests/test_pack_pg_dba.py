@@ -21,6 +21,7 @@ EXPECTED_TOOLS = {
     "get_performance_kpis",
     "get_security_kpis",
     "get_users",
+    "get_connections",
     "get_database_sizes",
     "get_database_version",
     "get_largest_objects",
@@ -100,6 +101,29 @@ async def test_database_version_returns_three_columns(blueprint: Blueprint) -> N
     assert len(parts) >= 2 and all(p.isdigit() for p in parts)
     assert str(row["version_number"]).isdigit()
     assert row["version"] in row["full_version"]
+
+
+async def test_get_connections_reports_sessions(blueprint: Blueprint) -> None:
+    result = await blueprint.pipeline.execute("get_connections", {})
+    assert result["status"] == "success"
+    assert result["row_count"] > 0
+    columns = {
+        "pid",
+        "database",
+        "user",
+        "client_addr",
+        "session_start",
+        "state",
+        "query_start",
+        "duration_seconds",
+        "backend_type",
+        "application",
+        "current_query",
+    }
+    for row in result["rows"]:
+        assert set(row) == columns
+        assert isinstance(row["pid"], int)
+    assert any(row["user"] and row["database"] for row in result["rows"])
 
 
 async def test_stdlib_server_registers_tools(blueprint: Blueprint) -> None:
