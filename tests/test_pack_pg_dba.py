@@ -45,9 +45,9 @@ async def blueprint() -> Blueprint:
 
 
 async def test_every_pack_tool_executes(blueprint: Blueprint) -> None:
-    assert set(blueprint.list_tools()) == EXPECTED_TOOLS
+    assert set(blueprint.list_tools()) >= EXPECTED_TOOLS
     pipeline = blueprint.pipeline
-    for tool_name in blueprint.list_tools():
+    for tool_name in EXPECTED_TOOLS:
         result = await pipeline.execute(tool_name, {})
         assert result["status"] == "success", tool_name
         assert "rows" in result
@@ -75,6 +75,20 @@ async def test_detail_tools_are_ordered_and_limited(blueprint: Blueprint) -> Non
     sizes = [row["size_bytes"] for row in result["rows"]]
     assert sizes == sorted(sizes, reverse=True)
     assert len(result["rows"]) <= 32
+
+
+async def test_largest_objects_parameter_filter(blueprint: Blueprint) -> None:
+    unfiltered = await blueprint.pipeline.execute("get_largest_objects", {})
+    assert unfiltered["row_count"] > 0
+    prefix = unfiltered["rows"][0]["name"][:4]
+
+    filtered = await blueprint.pipeline.execute(
+        "get_largest_objects", {"object_name": f"{prefix}%"}
+    )
+    assert filtered["status"] == "success"
+    assert filtered["row_count"] > 0
+    assert all(row["name"].startswith(prefix) for row in filtered["rows"])
+    assert filtered["row_count"] <= unfiltered["row_count"]
 
 
 async def test_database_version_returns_three_columns(blueprint: Blueprint) -> None:

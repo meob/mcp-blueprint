@@ -1,5 +1,13 @@
 name: get_largest_objects
-description: Return the largest tables and indexes by size, ordered descending.
+description: >-
+  Return the largest tables and indexes by size, ordered descending.  Pass an
+  object name to restrict the result to matching objects.
+parameters:
+  object_name:
+    type: string
+    required: false
+    default: null
+    description: SQL LIKE pattern matched against the table name; '%' acts as a wildcard.
 sql: ../sql/get_largest_objects.sql
 cache:
   ttl: 60

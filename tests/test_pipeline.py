@@ -86,6 +86,20 @@ async def test_pipeline_renders_optional_filter(tmp_path) -> None:
     assert "WHERE" not in sql2
 
 
+async def test_pipeline_binds_only_non_none_params(tmp_path) -> None:
+    adapter = FakeAdapter(rows=[])
+    pipeline = build_pipeline(adapter, make_metadata(tmp_path))
+    await pipeline.execute("get_data", {})
+    _, params = adapter.executed[0]
+    assert params == {"limit": 100}
+
+    adapter2 = FakeAdapter(rows=[])
+    pipeline2 = build_pipeline(adapter2, make_metadata(tmp_path))
+    await pipeline2.execute("get_data", {"database": "pgbench"})
+    _, params2 = adapter2.executed[0]
+    assert params2 == {"database": "pgbench", "limit": 100}
+
+
 async def test_pipeline_cache_second_call(tmp_path) -> None:
     adapter = FakeAdapter(rows=[{"n": 1}])
     pipeline = build_pipeline(adapter, make_metadata(tmp_path, rows_ttl=60))

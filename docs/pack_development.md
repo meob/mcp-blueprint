@@ -147,6 +147,44 @@ the keys of the `sql` map.
 Parameters are optional unless `required: true`.  Missing optional parameters
 fall back to `default` (often `null`).
 
+When a tool declares parameters, its SQL may use psycopg3 named placeholders
+(`%(name)s`).  Literal `%` characters in the same statement must be doubled
+(`%%`): the drivers parse `%` sequences as placeholders as soon as parameters
+are bound.  The reference packs already do this, e.g.
+`packs/pg-dba/sql/get_largest_objects.sql` uses `NOT LIKE 'pg\_%%'`.
+
+### Parameters in practice
+
+`get_largest_objects` shows the recommended pattern: an optional filter that
+falls back to the unfiltered query:
+
+```yaml
+name: get_largest_objects
+description: Return the largest tables and indexes by size, ordered descending.
+parameters:
+  object_name:
+    type: string
+    required: false
+    default: null
+    description: SQL LIKE pattern matched against the object name.
+sql: ../sql/get_largest_objects.sql
+```
+
+```sql
+SELECT ...
+WHERE c.relkind IN ('r', 'i', 'm', 'p')
+{% if object_name %}
+  AND c.relname LIKE %(object_name)s
+{% endif %}
+ORDER BY size_bytes DESC
+LIMIT 32;
+```
+
+The Jinja2 block is skipped when the parameter is omitted, so the placeholder
+is only emitted when a value is provided.  Optional filters are usually
+substring searches; to avoid asking the agent for wildcards, wrap the value in
+the SQL, e.g. `ILIKE '%%' || %(title)s || '%%'` (see `packs/sakila`).
+
 ## SQL files
 
 SQL lives in dedicated files and is rendered by Jinja2.

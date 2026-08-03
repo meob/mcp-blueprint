@@ -46,3 +46,12 @@ def test_renderer_undefined_variable_raises() -> None:
     renderer = SQLRenderer()
     with pytest.raises(SQLRenderError):
         renderer.render("WHERE x = {{ missing }}", {})
+
+
+def test_renderer_conditional_like_filter() -> None:
+    renderer = SQLRenderer()
+    template = "SELECT * FROM t\n{% if object_name %}\nWHERE name LIKE %(object_name)s\n{% endif %}"
+    rendered = renderer.render(template, {"object_name": "%payment%"})
+    assert "LIKE %(object_name)s" in rendered
+    rendered_empty = renderer.render(template, {"object_name": None})
+    assert "WHERE" not in rendered_empty

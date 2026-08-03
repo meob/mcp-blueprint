@@ -73,7 +73,8 @@ class ToolPipeline:
         sql = self._renderer.render(sql, params)
         logger.debug("tool_executing", tool=tool_name, sql=sql)
 
-        rows = await self._adapter.execute(sql, params)
+        bound = {name: value for name, value in params.items() if value is not None}
+        rows = await self._adapter.execute(sql, bound)
         rows = self._formatter.apply(rows, metadata.format)
 
         ttl = metadata.cache.ttl if metadata.cache else self._default_ttl
