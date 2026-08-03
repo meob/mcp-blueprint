@@ -21,6 +21,7 @@ from blueprint.db.base import DatabaseAdapter, create_adapter
 from blueprint.errors import ConfigurationError, ToolLoadError, ToolSecurityError
 from blueprint.formatting import ResultFormatter
 from blueprint.logging import configure_logging
+from blueprint.metrics import Metrics
 from blueprint.pack import load_pack_metadata
 from blueprint.pipeline import ToolPipeline
 from blueprint.sql.guard import ensure_read_only, ensure_single_statement, validate_template
@@ -39,10 +40,11 @@ class Blueprint:
     ) -> None:
         self.config = config or load_config(config_path)
         self.logger = configure_logging(self.config.logging)
+        self.metrics = Metrics() if self.config.metrics.enabled else None
         self.registry = ToolRegistry()
         self.sql_loader = SQLLoader()
         self.renderer = SQLRenderer()
-        self.cache = Cache(maxsize=self.config.server.cache_maxsize)
+        self.cache = Cache(maxsize=self.config.server.cache_maxsize, metrics=self.metrics)
         self.formatter = ResultFormatter()
         self._adapter: DatabaseAdapter | None = None
 
@@ -60,6 +62,7 @@ class Blueprint:
 
         engine = self.config.database.engine_id
         count = 0
+        loaded_packs = 0
         for pack_dir in sorted(directory.iterdir()):
             if not pack_dir.is_dir():
                 continue
@@ -79,7 +82,9 @@ class Blueprint:
                 self._validate_tool_sql(tool)
             self.registry.register_many(tools)
             count += len(tools)
+            loaded_packs += 1
             self.logger.info("pack_loaded", pack=pack_dir.name, tools=len(tools))
+        self._set_server_stats(count, loaded_packs)
         return count
 
     def load_pack(self, pack_dir: str | Path) -> int:
@@ -106,7 +111,13 @@ class Blueprint:
             self._validate_tool_sql(tool)
         self.registry.register_many(tools)
         self.logger.info("pack_loaded", pack=directory.name, tools=len(tools))
+        self._set_server_stats(len(self.registry.all()), 1)
         return len(tools)
+
+    def _set_server_stats(self, tools: int, packs: int) -> None:
+        """Refresh the metrics server gauges after packs are (re)loaded."""
+        if self.metrics is not None:
+            self.metrics.set_server_stats(tools, packs)
 
     def _validate_tool_sql(self, metadata: ToolMetadata) -> None:
         """Enforce the SQL safety policy on a tool's static templates.
@@ -134,7 +145,7 @@ class Blueprint:
     def adapter(self) -> DatabaseAdapter:
         """Return the database adapter, creating it on first use."""
         if self._adapter is None:
-            self._adapter = create_adapter(self.config.database)
+            self._adapter = create_adapter(self.config.database, metrics=self.metrics)
         return self._adapter
 
     @property
@@ -149,6 +160,7 @@ class Blueprint:
             cache=self.cache,
             default_ttl=self.config.server.default_ttl,
             max_rows=self.config.server.max_rows,
+            metrics=self.metrics,
         )
 
     def list_tools(self) -> list[str]:
@@ -167,6 +179,7 @@ class Blueprint:
             self.config.server.name,
             host=host or self.config.server.host,
             port=port or self.config.server.port,
+            metrics=self.metrics,
         )
 
     async def test_connection(self) -> None:

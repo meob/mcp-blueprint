@@ -148,12 +148,26 @@ class LoggingConfig(BaseModel):
     audit: AuditConfig | None = None
 
 
+class MetricsConfig(BaseModel):
+    """Prometheus metrics configuration.
+
+    Metrics are disabled by default.  When enabled, a Prometheus endpoint is
+    served on ``host:port/metrics`` independently of the MCP transport, which
+    keeps stdio servers scrapeable.  Requires the optional ``metrics`` extra.
+    """
+
+    enabled: bool = False
+    host: str = "127.0.0.1"
+    port: int = 9100
+
+
 class BlueprintConfig(BaseModel):
     """Aggregated framework configuration."""
 
     server: ServerConfig = Field(default_factory=ServerConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    metrics: MetricsConfig = Field(default_factory=MetricsConfig)
 
 
 def load_yaml(path: str | Path) -> dict[str, object]:
@@ -204,16 +218,27 @@ def load_logging_config(path: str | Path | None = None) -> LoggingConfig:
     return LoggingConfig.model_validate(section)
 
 
+def load_metrics_config(path: str | Path | None = None) -> MetricsConfig:
+    """Load the metrics configuration section."""
+    if path is None:
+        return MetricsConfig()
+    data = load_yaml(path)
+    section = data.get("metrics", data)
+    if not isinstance(section, dict):
+        raise ConfigurationError(f"metrics section must be a mapping: {path}")
+    return MetricsConfig.model_validate(section)
+
+
 def load_config(config_path: str | Path | None = None) -> BlueprintConfig:
     """Load the full framework configuration.
 
     ``config_path`` may point to:
 
-    * a directory containing ``server.yaml``, ``database.yaml`` and
-      ``logging.yaml``;
-    * a single ``server.yaml`` that embeds all three sections;
-    * a single file with only the ``server`` section (database and logging
-      fall back to defaults).
+    * a directory containing ``server.yaml``, ``database.yaml``,
+      ``logging.yaml`` and ``metrics.yaml``;
+    * a single ``server.yaml`` that embeds all sections;
+    * a single file with only the ``server`` section (other sections fall
+      back to defaults).
     """
     if config_path is None:
         return BlueprintConfig()
@@ -223,14 +248,20 @@ def load_config(config_path: str | Path | None = None) -> BlueprintConfig:
         server_file = path / "server.yaml"
         database_file = path / "database.yaml"
         logging_file = path / "logging.yaml"
+        metrics_file = path / "metrics.yaml"
         server = load_server_config(server_file) if server_file.is_file() else ServerConfig()
         database = (
             load_database_config(database_file) if database_file.is_file() else DatabaseConfig()
         )
         logging = load_logging_config(logging_file) if logging_file.is_file() else LoggingConfig()
-        return BlueprintConfig(server=server, database=database, logging=logging)
+        metrics = (
+            load_metrics_config(metrics_file) if metrics_file.is_file() else MetricsConfig()
+        )
+        return BlueprintConfig(
+            server=server, database=database, logging=logging, metrics=metrics
+        )
 
     data = load_yaml(path)
-    if "server" in data and "database" in data and "logging" in data:
+    if any(key in data for key in ("server", "database", "logging", "metrics")):
         return BlueprintConfig.model_validate(data)
     return BlueprintConfig(server=ServerConfig.model_validate(data.get("server", data)))

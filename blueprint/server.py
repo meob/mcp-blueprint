@@ -23,6 +23,7 @@ from mcp.server.fastmcp import FastMCP
 
 from blueprint.errors import ToolNotFoundError, ToolValidationError
 from blueprint.logging import record_audit
+from blueprint.metrics import Metrics
 from blueprint.pipeline import ToolPipeline
 from blueprint.tools.model import ToolMetadata
 from blueprint.tools.registry import ToolRegistry
@@ -97,9 +98,11 @@ class AuditedFastMCP(FastMCP):
         server_name: str,
         host: str = "127.0.0.1",
         port: int = 8000,
+        metrics: Metrics | None = None,
     ) -> None:
         super().__init__(server_name, host=host, port=port)
         self._registry = registry
+        self._metrics = metrics
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         """Validate before FastMCP does, so rejected calls stay in the audit log."""
@@ -124,6 +127,10 @@ class AuditedFastMCP(FastMCP):
                     status="error",
                     error=str(exc),
                 )
+                if self._metrics is not None:
+                    self._metrics.record_error(
+                        name, metadata.pack_name, round((perf_counter() - started) * 1000, 2)
+                    )
                 raise
             finally:
                 structlog.contextvars.clear_contextvars()
@@ -137,8 +144,9 @@ def create_server(
     server_name: str,
     host: str = "127.0.0.1",
     port: int = 8000,
+    metrics: Metrics | None = None,
 ) -> FastMCP:
     """Create a FastMCP server with all enabled tools registered."""
-    mcp = AuditedFastMCP(registry, server_name, host=host, port=port)
+    mcp = AuditedFastMCP(registry, server_name, host=host, port=port, metrics=metrics)
     register_tools(mcp, pipeline, registry)
     return mcp

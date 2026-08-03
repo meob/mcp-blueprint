@@ -18,6 +18,7 @@ from collections.abc import Sequence
 
 from blueprint.app import Blueprint
 from blueprint.errors import BlueprintError
+from blueprint.metrics import start_metrics_server
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -59,6 +60,14 @@ async def _run(list_tools_only: bool, args: argparse.Namespace) -> int:
         transport = "streamable-http"
 
     await blueprint.test_connection()
+
+    metrics_config = blueprint.config.metrics
+    if metrics_config.enabled:
+        start_metrics_server(metrics_config)
+        print(
+            f"serving Prometheus metrics at http://{metrics_config.host}:{metrics_config.port}/metrics",
+            file=sys.stderr,
+        )
 
     if transport == "streamable-http":
         host = args.host or blueprint.config.server.host

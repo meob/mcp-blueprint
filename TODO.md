@@ -196,6 +196,11 @@ Checkboxes track the current MVP status.
       log and audit records
 * [x] Sensitive data redaction by default (passwords, tokens, DSNs, ...)
 * [x] `docs/logging.md` documenting activation and control
+* [x] Prometheus metrics endpoint as an optional `[metrics]` extra: full
+      catalog (tool calls/duration/rows, cache hits/misses, DB queries and
+      errors, pool stats, registered tools/packs) served on a dedicated
+      `host:port/metrics` endpoint that works with stdio too; disabled by
+      default (`config/metrics.yaml`); `docs/metrics.md`
 * [ ] OpenTelemetry exporter as an optional extra (spans/metrics on top of
       the existing `trace_id`)
 
@@ -376,8 +381,8 @@ Examples:
 * [ ] Pack installer
 * [ ] Pack repository
 * [ ] Web administration UI
-* [ ] Metrics endpoint
-* [ ] Prometheus integration
+* [x] Metrics endpoint
+* [x] Prometheus integration
 * [ ] NoSQL adapters
 
 ---

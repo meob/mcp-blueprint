@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Any
+from time import perf_counter
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlsplit
 
 import asyncmy
@@ -17,6 +18,9 @@ import structlog
 from blueprint.config import DatabaseConfig
 from blueprint.db.base import DatabaseAdapter
 from blueprint.errors import DatabaseError
+
+if TYPE_CHECKING:
+    from blueprint.metrics import Metrics
 
 logger = structlog.get_logger(__name__)
 
@@ -31,8 +35,9 @@ class MySQLAdapter(DatabaseAdapter):
 
     engine = "mysql"
 
-    def __init__(self, config: DatabaseConfig) -> None:
+    def __init__(self, config: DatabaseConfig, metrics: Metrics | None = None) -> None:
         self._config = config
+        self._metrics = metrics
         self._pool: asyncmy.pool.Pool | None = None
         self._lock = asyncio.Lock()
 
@@ -80,8 +85,11 @@ class MySQLAdapter(DatabaseAdapter):
         }
 
     async def execute(self, sql: str, params: dict[str, Any]) -> list[dict[str, Any]]:
-        pool = await self._get_pool()
+        started = perf_counter()
+        pool: asyncmy.pool.Pool | None = None
+        ok = False
         try:
+            pool = await self._get_pool()
             async with pool.acquire() as connection, connection.cursor() as cursor:
                 # asyncmy only interpolates placeholders when params are bound.
                 # Passing None for empty parameter sets avoids conflicts with
@@ -91,9 +99,27 @@ class MySQLAdapter(DatabaseAdapter):
                     return []
                 columns = [column[0] for column in cursor.description]
                 rows = await cursor.fetchall()
-                return [dict(zip(columns, row, strict=True)) for row in rows]
+                result = [dict(zip(columns, row, strict=True)) for row in rows]
+                ok = True
+                return result
         except asyncmy.errors.Error as exc:
             raise DatabaseError(f"query failed: {exc}") from exc
+        finally:
+            if self._metrics is not None:
+                self._metrics.record_db_query(
+                    self.engine, perf_counter() - started, error=not ok
+                )
+                self._update_pool_metrics(pool)
+
+    def _update_pool_metrics(self, pool: asyncmy.pool.Pool | None) -> None:
+        if self._metrics is None or pool is None:
+            return
+        self._metrics.set_pool_stats(
+            self.engine,
+            size=pool.size,
+            idle=pool.freesize,
+            max_size=pool.maxsize,
+        )
 
     async def test_connection(self) -> None:
         await self.execute("SELECT 1 AS ok", {})

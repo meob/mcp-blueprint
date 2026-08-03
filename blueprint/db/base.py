@@ -7,10 +7,13 @@ implements :class:`DatabaseAdapter`; only SQL and the adapter change.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from blueprint.config import DatabaseConfig
 from blueprint.errors import AdapterNotFoundError
+
+if TYPE_CHECKING:
+    from blueprint.metrics import Metrics
 
 
 class DatabaseAdapter(ABC):
@@ -41,15 +44,15 @@ class DatabaseAdapter(ABC):
         await self.close()
 
 
-def create_adapter(config: DatabaseConfig) -> DatabaseAdapter:
+def create_adapter(config: DatabaseConfig, metrics: Metrics | None = None) -> DatabaseAdapter:
     """Create the adapter matching ``config.engine``."""
     engine = config.engine_id
     if engine == "postgresql":
         from blueprint.db.postgres import PostgresAdapter
 
-        return PostgresAdapter(config)
+        return PostgresAdapter(config, metrics=metrics)
     if engine == "mysql":
         from blueprint.db.mysql import MySQLAdapter
 
-        return MySQLAdapter(config)
+        return MySQLAdapter(config, metrics=metrics)
     raise AdapterNotFoundError(f"no adapter for engine: {config.engine}")

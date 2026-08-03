@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from time import perf_counter
+from typing import TYPE_CHECKING, Any
 
 import psycopg
 import structlog
@@ -12,6 +13,9 @@ from psycopg_pool import AsyncConnectionPool
 from blueprint.config import DatabaseConfig
 from blueprint.db.base import DatabaseAdapter
 from blueprint.errors import DatabaseError
+
+if TYPE_CHECKING:
+    from blueprint.metrics import Metrics
 
 logger = structlog.get_logger(__name__)
 
@@ -28,8 +32,9 @@ class PostgresAdapter(DatabaseAdapter):
 
     engine = "postgresql"
 
-    def __init__(self, config: DatabaseConfig) -> None:
+    def __init__(self, config: DatabaseConfig, metrics: Metrics | None = None) -> None:
         self._config = config
+        self._metrics = metrics
         self._pool: AsyncConnectionPool | None = None
         self._lock = asyncio.Lock()
 
@@ -67,8 +72,11 @@ class PostgresAdapter(DatabaseAdapter):
         return "unknown connection error"
 
     async def execute(self, sql: str, params: dict[str, Any]) -> list[dict[str, Any]]:
-        pool = await self._get_pool()
+        started = perf_counter()
+        pool: AsyncConnectionPool | None = None
+        ok = False
         try:
+            pool = await self._get_pool()
             async with pool.connection() as connection, connection.cursor() as cursor:
                 # psycopg only parses placeholders when params are bound.  Passing
                 # None for empty parameter sets avoids conflicts with literal '%'
@@ -77,9 +85,27 @@ class PostgresAdapter(DatabaseAdapter):
                 if cursor.description is None:
                     return []
                 columns = [column.name for column in cursor.description]
-                return [dict(zip(columns, row, strict=True)) for row in await cursor.fetchall()]
+                rows = [dict(zip(columns, row, strict=True)) for row in await cursor.fetchall()]
+                ok = True
+                return rows
         except psycopg.Error as exc:
             raise DatabaseError(f"query failed: {exc}") from exc
+        finally:
+            if self._metrics is not None:
+                self._metrics.record_db_query(
+                    self.engine, perf_counter() - started, error=not ok
+                )
+                self._update_pool_metrics(pool)
+
+    def _update_pool_metrics(self, pool: AsyncConnectionPool | None) -> None:
+        if self._metrics is None or pool is None:
+            return
+        stats = pool.get_stats()
+        self._metrics.set_pool_stats(
+            self.engine,
+            max_size=pool.max_size,
+            waiting=int(stats.get("requests_waiting", 0)),
+        )
 
     async def test_connection(self) -> None:
         await self.execute("SELECT 1 AS ok", {})

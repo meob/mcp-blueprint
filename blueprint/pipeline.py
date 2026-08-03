@@ -18,7 +18,8 @@ from blueprint.cache import Cache
 from blueprint.db.base import DatabaseAdapter
 from blueprint.errors import ToolSecurityError
 from blueprint.formatting import ResultFormatter, json_safe
-from blueprint.logging import audit_enabled, get_audit_logger
+from blueprint.logging import record_audit
+from blueprint.metrics import Metrics
 from blueprint.sql.guard import ensure_read_only, ensure_single_statement
 from blueprint.sql.loader import SQLLoader
 from blueprint.sql.renderer import SQLRenderer
@@ -41,6 +42,7 @@ class ToolPipeline:
         cache: Cache,
         default_ttl: int | None = 30,
         max_rows: int | None = None,
+        metrics: Metrics | None = None,
     ) -> None:
         self._registry = registry
         self._sql_loader = sql_loader
@@ -50,6 +52,7 @@ class ToolPipeline:
         self._cache = cache
         self._default_ttl = default_ttl
         self._max_rows = max_rows
+        self._metrics = metrics
 
     async def execute(self, tool_name: str, raw_params: dict[str, Any]) -> dict[str, Any]:
         """Run the tool named ``tool_name`` and return a JSON-safe response."""
@@ -78,8 +81,10 @@ class ToolPipeline:
             cached = self._cache.get(cache_key)
             if cached is not None:
                 logger.info("tool_cache_hit", tool=tool_name)
+                self._record_cache(tool_name, hit=True)
                 response = self._response(metadata.name, cached, started, cache_hit=True)
             else:
+                self._record_cache(tool_name, hit=False)
                 sql = self._sql_loader.load(sql_path, metadata.source)
                 sql = self._renderer.render(sql, params)
                 logger.debug("tool_executing", tool=tool_name, sql=sql)
@@ -107,6 +112,9 @@ class ToolPipeline:
                 status="success",
                 cache_hit=response["cache_hit"],
             )
+            self._record_metrics_success(
+                tool_name, metadata.pack_name, response["duration_ms"], response["row_count"]
+            )
             return response
         except Exception as exc:
             self._record_audit(
@@ -118,6 +126,11 @@ class ToolPipeline:
                 status="error",
                 error=str(exc),
             )
+            self._record_metrics_error(
+                tool_name,
+                metadata.pack_name if metadata is not None else "",
+                round((perf_counter() - started) * 1000, 2),
+            )
             raise
         finally:
             structlog.contextvars.clear_contextvars()
@@ -125,8 +138,21 @@ class ToolPipeline:
     @staticmethod
     def _record_audit(event: str, **fields: Any) -> None:
         """Emit one audit record per tool execution when the audit is enabled."""
-        if audit_enabled():
-            get_audit_logger().info(event, **fields)
+        record_audit(event, **fields)
+
+    def _record_cache(self, tool: str, hit: bool) -> None:
+        if self._metrics is not None:
+            self._metrics.record_cache(tool, hit=hit)
+
+    def _record_metrics_success(
+        self, tool: str, pack: str, duration_ms: float, rows: int
+    ) -> None:
+        if self._metrics is not None:
+            self._metrics.record_success(tool, pack, duration_ms, rows)
+
+    def _record_metrics_error(self, tool: str, pack: str, duration_ms: float) -> None:
+        if self._metrics is not None:
+            self._metrics.record_error(tool, pack, duration_ms)
 
     def _enforce_sql_policy(self, tool_name: str, sql: str, writes: bool) -> None:
         """Reject rendered SQL that violates the read-only policy.
