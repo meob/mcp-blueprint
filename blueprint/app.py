@@ -18,14 +18,16 @@ from blueprint.config import (
     load_config,
 )
 from blueprint.db.base import DatabaseAdapter, create_adapter
-from blueprint.errors import ConfigurationError
+from blueprint.errors import ConfigurationError, ToolLoadError, ToolSecurityError
 from blueprint.formatting import ResultFormatter
 from blueprint.logging import configure_logging
 from blueprint.pack import load_pack_metadata
 from blueprint.pipeline import ToolPipeline
+from blueprint.sql.guard import ensure_read_only, ensure_single_statement, validate_template
 from blueprint.sql.loader import SQLLoader
 from blueprint.sql.renderer import SQLRenderer
 from blueprint.tools.loader import load_tools_from_dir
+from blueprint.tools.model import ToolMetadata
 from blueprint.tools.registry import ToolRegistry
 
 
@@ -69,6 +71,8 @@ class Blueprint:
                 self.logger.info("pack_skipped_for_engine", pack=pack_dir.name, engine=engine)
                 continue
             tools = load_tools_from_dir(tools_dir, pack_name=pack_dir.name, engine=engine)
+            for tool in tools:
+                self._validate_tool_sql(tool)
             self.registry.register_many(tools)
             count += len(tools)
             self.logger.info("pack_loaded", pack=pack_dir.name, tools=len(tools))
@@ -94,9 +98,33 @@ class Blueprint:
             pack_name=directory.name,
             engine=self.config.database.engine_id,
         )
+        for tool in tools:
+            self._validate_tool_sql(tool)
         self.registry.register_many(tools)
         self.logger.info("pack_loaded", pack=directory.name, tools=len(tools))
         return len(tools)
+
+    def _validate_tool_sql(self, metadata: ToolMetadata) -> None:
+        """Enforce the SQL safety policy on a tool's static templates.
+
+        Every SQL file must avoid value interpolation and, unless the tool
+        declares ``writes: true``, must be a single read-only statement.
+        Runtime enforcement in the pipeline cannot be bypassed; this load-time
+        check surfaces authoring errors early with the tool name.
+        """
+        paths = [metadata.sql] if isinstance(metadata.sql, str) else list(metadata.sql.values())
+        for path in paths:
+            sql = self.sql_loader.load(path, metadata.source)
+            try:
+                validate_template(sql)
+                if metadata.writes:
+                    ensure_single_statement(sql)
+                else:
+                    ensure_read_only(sql)
+            except ToolSecurityError as exc:
+                raise ToolLoadError(
+                    f"tool '{metadata.name}' in pack '{metadata.pack_name}' ({path}): {exc}"
+                ) from exc
 
     @property
     def adapter(self) -> DatabaseAdapter:
@@ -116,6 +144,7 @@ class Blueprint:
             formatter=self.formatter,
             cache=self.cache,
             default_ttl=self.config.server.default_ttl,
+            max_rows=self.config.server.max_rows,
         )
 
     def list_tools(self) -> list[str]:

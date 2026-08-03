@@ -81,6 +81,7 @@ class ToolMetadata(BaseModel):
     roles: list[str] = Field(default_factory=list)
     enabled: bool = True
     requires_confirmation: bool = False
+    writes: bool = False
     format: FormatConfig | None = None
     pack_name: str = ""
     source: str = ""

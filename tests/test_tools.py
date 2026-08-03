@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from blueprint.errors import ToolLoadError, ToolNotFoundError
 from blueprint.tools.loader import load_tool_from_file, load_tools_from_dir
 from blueprint.tools.registry import ToolRegistry
@@ -171,3 +173,59 @@ def test_template_pack_stays_loadable() -> None:
     tools = load_tools_from_dir(tools_dir, pack_name="my-pack", engine="postgresql")
     assert [t.name for t in tools] == ["get_items"]
     assert tools[0].sql_for("postgresql") == "../sql/get_items.sql"
+
+
+def _write_pack(tmp_path, name: str, sql: str, tool_yaml: str) -> None:
+    pack_dir = tmp_path / "mypack"
+    sql_dir = pack_dir / "sql"
+    tools_dir = pack_dir / "tools"
+    sql_dir.mkdir(parents=True, exist_ok=True)
+    tools_dir.mkdir(exist_ok=True)
+    (sql_dir / f"{name}.sql").write_text(sql, encoding="utf-8")
+    (tools_dir / f"{name}.yaml").write_text(tool_yaml, encoding="utf-8")
+
+
+def _load_pack(tmp_path):
+    from blueprint.app import Blueprint
+    from blueprint.config import BlueprintConfig, DatabaseConfig, ServerConfig
+
+    config = BlueprintConfig(
+        server=ServerConfig(packs_dir=str(tmp_path)),
+        database=DatabaseConfig(engine="postgresql", dsn="postgresql://localhost/app"),
+    )
+    return Blueprint(config=config)
+
+
+def test_load_rejects_non_read_only_tool(tmp_path) -> None:
+    _write_pack(
+        tmp_path,
+        "purge_films",
+        "DELETE FROM film",
+        "name: purge_films\ndescription: x\nsql: ../sql/purge_films.sql\n",
+    )
+    app = _load_pack(tmp_path)
+    with pytest.raises(ToolLoadError, match="not read-only"):
+        app.load_packs()
+
+
+def test_load_accepts_write_tool_when_declared(tmp_path) -> None:
+    _write_pack(
+        tmp_path,
+        "purge_films",
+        "DELETE FROM film",
+        "name: purge_films\ndescription: x\nwrites: true\nsql: ../sql/purge_films.sql\n",
+    )
+    app = _load_pack(tmp_path)
+    assert app.load_packs() == 1
+
+
+def test_load_rejects_interpolated_template(tmp_path) -> None:
+    _write_pack(
+        tmp_path,
+        "get_user",
+        "SELECT * FROM users WHERE id = {{ user_id }}",
+        "name: get_user\ndescription: x\nsql: ../sql/get_user.sql\n",
+    )
+    app = _load_pack(tmp_path)
+    with pytest.raises(ToolLoadError, match="interpolated"):
+        app.load_packs()

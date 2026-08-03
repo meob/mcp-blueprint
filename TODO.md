@@ -125,9 +125,9 @@ Checkboxes track the current MVP status.
 * [x] Conditional SQL
 * [x] Optional parameters
 * [x] SQL syntax validation
+* [x] Result size bounded by the framework (`server.max_rows`, default `1000`)
 * [ ] Every tool SQL enforces an `ORDER BY` (most significant rows first)
-      and a `LIMIT` to bound result size (`get_largest_objects` already
-      complies; audit the rest)
+      (`get_largest_objects` already complies; audit the rest)
 
 ---
 
@@ -161,7 +161,17 @@ Checkboxes track the current MVP status.
 * [x] Role metadata
 * [x] Confirmation flag
 * [ ] Future authentication hooks
-* [ ] Check against injection, parameters, unlimited queries
+* [x] Read-only policy by default: the SQL guard accepts exactly one
+      `SELECT` (or a `WITH`/`WITH RECURSIVE` query ending in `SELECT`),
+      enforced at load time and re-checked at runtime on the rendered
+      statement; fail-closed (`blueprint/sql/guard.py`)
+* [x] Writes require an explicit opt-in (`writes: true` in the tool YAML);
+      editing the SQL alone is not enough
+* [x] Injection hardening: Jinja2 `{{ }}` interpolation is rejected,
+      values reach the database only as bound placeholders (`%(name)s`)
+* [x] Response row cap `server.max_rows` (default `1000`), configurable
+* [x] Unit tests for the guard, pipeline enforcement and load-time
+      validation
 
 ---
 
@@ -189,6 +199,7 @@ that lets an agent run a DVD rental store chatbot without writing SQL.  See
 * [x] `get_customer_rentals(customer_id)` — `active`/`overdue`/`returned` status
 * [x] Tool descriptions steer the agent (e.g. `search_customer` points to
       `get_customer_rentals` to check a customer's situation)
+* [x] All pack SQL complies with the read-only policy (SELECT only)
 * [x] First tools with real parameters: `get_largest_objects` accepts an
       optional `object_name` LIKE filter on both reference DBA packs
 * [x] Parameterized SQL escapes literal `%` as `%%` (documented in

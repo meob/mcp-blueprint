@@ -12,6 +12,7 @@ from blueprint.errors import (
     DatabaseError,
     ToolDisabledError,
     ToolNotFoundError,
+    ToolSecurityError,
     ToolValidationError,
 )
 from blueprint.formatting import ResultFormatter
@@ -28,6 +29,7 @@ def build_pipeline(
     metadata: ToolMetadata,
     rows: list[dict] | None = None,
     default_ttl: int | None = 30,
+    max_rows: int | None = None,
 ) -> ToolPipeline:
     registry = ToolRegistry()
     registry.register(metadata)
@@ -39,6 +41,7 @@ def build_pipeline(
         formatter=ResultFormatter(),
         cache=Cache(),
         default_ttl=default_ttl,
+        max_rows=max_rows,
     )
 
 
@@ -153,3 +156,58 @@ async def test_pipeline_applies_format(tmp_path) -> None:
     pipeline = build_pipeline(adapter, metadata)
     result = await pipeline.execute("get_data", {})
     assert result["rows"] == [{"size": "2.0 KB", "keep": True}]
+
+
+def make_write_metadata(tmp_path: Path, sql_text: str) -> ToolMetadata:
+    sql_file = tmp_path / "write.sql"
+    sql_file.write_text(sql_text, encoding="utf-8")
+    return ToolMetadata(
+        name="mutate_data",
+        description="Write tool.",
+        sql=str(sql_file),
+        source=str(tmp_path / "mutate_data.yaml"),
+    )
+
+
+async def test_pipeline_blocks_non_read_only_sql(tmp_path) -> None:
+    adapter = FakeAdapter()
+    metadata = make_write_metadata(tmp_path, "UPDATE t SET name = %(name)s")
+    pipeline = build_pipeline(adapter, metadata)
+    with pytest.raises(ToolSecurityError, match="not read-only"):
+        await pipeline.execute("mutate_data", {})
+    assert adapter.executed == []
+
+
+async def test_pipeline_allows_write_when_declared(tmp_path) -> None:
+    adapter = FakeAdapter(rows=[])
+    metadata = make_write_metadata(tmp_path, "UPDATE t SET name = %(name)s")
+    metadata.writes = True
+    pipeline = build_pipeline(adapter, metadata)
+    result = await pipeline.execute("mutate_data", {})
+    assert result["status"] == "success"
+    assert adapter.executed[0][0].startswith("UPDATE")
+
+
+async def test_pipeline_blocks_stacked_statements(tmp_path) -> None:
+    adapter = FakeAdapter()
+    metadata = make_write_metadata(tmp_path, "SELECT 1; DROP TABLE t")
+    metadata.writes = True
+    pipeline = build_pipeline(adapter, metadata)
+    with pytest.raises(ToolSecurityError, match="exactly one statement"):
+        await pipeline.execute("mutate_data", {})
+    assert adapter.executed == []
+
+
+async def test_pipeline_caps_rows(tmp_path) -> None:
+    adapter = FakeAdapter(rows=[{"n": i} for i in range(5)])
+    pipeline = build_pipeline(adapter, make_metadata(tmp_path), max_rows=3)
+    result = await pipeline.execute("get_data", {})
+    assert result["row_count"] == 3
+    assert len(result["rows"]) == 3
+
+
+async def test_pipeline_no_cap_when_configured_none(tmp_path) -> None:
+    adapter = FakeAdapter(rows=[{"n": i} for i in range(5)])
+    pipeline = build_pipeline(adapter, make_metadata(tmp_path), max_rows=None)
+    result = await pipeline.execute("get_data", {})
+    assert result["row_count"] == 5

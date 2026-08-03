@@ -49,6 +49,7 @@ class ServerConfig(BaseModel):
     default_ttl: int | None = 30
     packs_dir: str = "packs"
     cache_maxsize: int = 256
+    max_rows: int = 1000
 
     @field_validator("transport")
     @classmethod

@@ -39,6 +39,10 @@ class SQLRenderError(BlueprintError):
     """Raised when a SQL template cannot be rendered."""
 
 
+class ToolSecurityError(BlueprintError):
+    """Raised when a tool's SQL violates the read-only or injection policy."""
+
+
 class DatabaseError(BlueprintError):
     """Raised when a database operation fails."""
 

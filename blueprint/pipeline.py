@@ -14,7 +14,9 @@ import structlog
 
 from blueprint.cache import Cache
 from blueprint.db.base import DatabaseAdapter
+from blueprint.errors import ToolSecurityError
 from blueprint.formatting import ResultFormatter, json_safe
+from blueprint.sql.guard import ensure_read_only, ensure_single_statement
 from blueprint.sql.loader import SQLLoader
 from blueprint.sql.renderer import SQLRenderer
 from blueprint.tools.registry import ToolRegistry
@@ -35,6 +37,7 @@ class ToolPipeline:
         formatter: ResultFormatter,
         cache: Cache,
         default_ttl: int | None = 30,
+        max_rows: int | None = None,
     ) -> None:
         self._registry = registry
         self._sql_loader = sql_loader
@@ -43,6 +46,7 @@ class ToolPipeline:
         self._formatter = formatter
         self._cache = cache
         self._default_ttl = default_ttl
+        self._max_rows = max_rows
 
     async def execute(self, tool_name: str, raw_params: dict[str, Any]) -> dict[str, Any]:
         """Run the tool named ``tool_name`` and return a JSON-safe response."""
@@ -73,15 +77,45 @@ class ToolPipeline:
         sql = self._renderer.render(sql, params)
         logger.debug("tool_executing", tool=tool_name, sql=sql)
 
+        self._enforce_sql_policy(tool_name, sql, metadata.writes)
+
         bound = {name: value for name, value in params.items() if value is not None}
         rows = await self._adapter.execute(sql, bound)
         rows = self._formatter.apply(rows, metadata.format)
+        rows = self._cap_rows(tool_name, rows)
 
         ttl = metadata.cache.ttl if metadata.cache else self._default_ttl
         if ttl:
             self._cache.set(cache_key, rows, ttl)
 
         return self._response(metadata.name, rows, started)
+
+    def _enforce_sql_policy(self, tool_name: str, sql: str, writes: bool) -> None:
+        """Reject rendered SQL that violates the read-only policy.
+
+        Runs on the rendered statement, so it cannot be bypassed by template
+        tricks: a parameter value can never change the statement because
+        values are only ever bound, never interpolated.
+        """
+        try:
+            if writes:
+                ensure_single_statement(sql)
+            else:
+                ensure_read_only(sql)
+        except ToolSecurityError as exc:
+            raise ToolSecurityError(f"tool '{tool_name}' blocked: {exc}") from exc
+
+    def _cap_rows(self, tool_name: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Bound the response size regardless of the query's own LIMIT."""
+        if self._max_rows is None or len(rows) <= self._max_rows:
+            return rows
+        logger.warning(
+            "rows_truncated",
+            tool=tool_name,
+            total=len(rows),
+            max_rows=self._max_rows,
+        )
+        return rows[: self._max_rows]
 
     @staticmethod
     def _response(

@@ -129,6 +129,7 @@ are `postgresql`, `mysql` and `oracle` (with `postgres` accepted as an alias).
 | `roles`                | list of strings      | Optional role metadata (reserved for authorization).|
 | `enabled`              | boolean              | Set to `false` to hide the tool.                   |
 | `requires_confirmation`| boolean              | Reserved for confirmation workflows.               |
+| `writes`               | boolean              | Set to `true` to allow non-SELECT statements (opt-in). |
 | `format.rename`        | map                  | Rename result columns.                             |
 | `format.hidden`        | list of strings      | Drop internal columns from results.                |
 
@@ -242,6 +243,50 @@ packs/audit/
 
 Engine identifiers in the `sql` map must match the directory names under
 `sql/`.
+
+## Security model
+
+Every tool is **read-only by default**.  The framework enforces this twice:
+
+* **At load time**, each SQL template is validated and a non-compliant pack is
+  rejected with a clear error (tool, pack and file are reported).
+* **At runtime**, the *rendered* statement is re-checked immediately before
+  execution, so the policy cannot be bypassed through templates.
+
+The guard is fail-closed: anything that is not a recognized read statement is
+treated as a write and blocked.
+
+### Read-only policy
+
+The default policy allows exactly **one** `SELECT` statement (a `WITH` /
+`WITH RECURSIVE` query is accepted when it ends in a `SELECT`).  Stacked or
+trailing statements are rejected.
+
+To let a tool modify data, opt in explicitly in the tool metadata:
+
+```yaml
+name: reset_password
+description: Reset a password.
+writes: true
+sql: ../sql/reset_password.sql
+```
+
+A `writes: true` tool must still contain a single statement (no stacked
+queries).  Opting in is the only way to run non-SELECT statements — editing
+the SQL alone is not enough.
+
+### Injection and templates
+
+Templates support Jinja2 control flow (`{% if %}`, `{% endif %}`) but
+**not** value interpolation (`{{ expr }}` is rejected).  Parameter values
+reach the database exclusively as bound placeholders (`%(name)s`), so user
+input can never become SQL syntax.
+
+### Result size
+
+The server caps the number of rows returned by a single tool call
+(`server.max_rows`, default `1000`).  Tools that may return large result sets
+should still use a `LIMIT`.
 
 ## KPI status convention
 

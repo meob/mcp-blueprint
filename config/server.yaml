@@ -7,3 +7,4 @@ server:
   default_ttl: 30
   cache_maxsize: 256
   packs_dir: packs
+  max_rows: 1000
