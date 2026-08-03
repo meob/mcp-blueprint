@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+
+import pytest
 
 from blueprint import server as server_module
 from blueprint.cache import Cache
+from blueprint.config import AuditConfig, LoggingConfig
+from blueprint.errors import ToolValidationError
 from blueprint.formatting import ResultFormatter
+from blueprint.logging import configure_logging
 from blueprint.pipeline import ToolPipeline
 from blueprint.sql.loader import SQLLoader
 from blueprint.sql.renderer import SQLRenderer
@@ -88,3 +94,41 @@ async def test_tool_without_parameters_registers(tmp_path) -> None:
     tools = await mcp.list_tools()
     assert len(tools) == 1
     assert tools[0].name == "no_params"
+
+
+async def test_validation_rejection_is_audited(tmp_path) -> None:
+    audit_file = tmp_path / "audit.jsonl"
+    configure_logging(LoggingConfig(audit=AuditConfig(enabled=True, file_path=str(audit_file))))
+    registry = ToolRegistry()
+    metadata = make_metadata(tmp_path)
+    registry.register(metadata)
+    mcp = server_module.create_server(build_pipeline(registry), registry, "test")
+
+    with pytest.raises(ToolValidationError):
+        await mcp.call_tool("get_data", {"limit": "oops"})
+
+    lines = audit_file.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["event"] == "tool_failed"
+    assert record["tool"] == "get_data"
+    assert record["status"] == "error"
+    assert "limit" in record["params"]
+    assert record["error"]
+
+
+async def test_valid_call_is_not_audited_as_validation_failure(tmp_path) -> None:
+    audit_file = tmp_path / "audit.jsonl"
+    configure_logging(LoggingConfig(audit=AuditConfig(enabled=True, file_path=str(audit_file))))
+    registry = ToolRegistry()
+    metadata = make_metadata(tmp_path)
+    metadata.parameters["limit"].required = True
+    registry.register(metadata)
+
+    mcp = server_module.create_server(
+        build_pipeline(registry, rows=[{"value": 42}]), registry, "test"
+    )
+    await mcp.call_tool("get_data", {"limit": 5})
+    lines = audit_file.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["event"] == "tool_executed"

@@ -178,3 +178,9 @@ def audit_enabled() -> bool:
 def get_audit_logger() -> structlog.stdlib.BoundLogger:
     """Return the audit logger, which emits JSONL tool-execution records."""
     return cast(structlog.stdlib.BoundLogger, structlog.get_logger("audit"))
+
+
+def record_audit(event: str, **fields: Any) -> None:
+    """Emit one audit record when the audit channel is enabled, otherwise no-op."""
+    if _audit_enabled:
+        get_audit_logger().info(event, **fields)

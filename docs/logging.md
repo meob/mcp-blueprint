@@ -69,6 +69,10 @@ On failure the event is `tool_failed`, `status` is `error` and an `error`
 field carries the message.  The audit logger is `audit`; it never propagates
 to the main log and is fully inert while disabled.
 
+Calls rejected by parameter validation are recorded too: the framework
+validates arguments before the MCP layer, so a `tool_failed` record is written
+for every rejected call with `status: "error"` and the validation message.
+
 ## Request correlation (tracing)
 
 Every tool call binds a `trace_id` (a random hex string) before execution and

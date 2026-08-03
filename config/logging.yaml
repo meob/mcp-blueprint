@@ -1,15 +1,13 @@
 logging:
   level: info
   format: json
-
-  # Persist the main log to a rotating file (default: stderr only).
-  # file_path: logs/blueprint.jsonl
-  # file_max_bytes: 10485760
-  # file_backups: 5
+  file_path: logs/blueprint.jsonl
+  file_max_bytes: 10485760
+  file_backups: 5
 
   # Audit log: one JSON line per tool execution, with trace_id.
-  # audit:
-  #   enabled: true
-  #   file_path: logs/audit.jsonl
-  #   max_bytes: 10485760
-  #   backups: 5
+  audit:
+    enabled: true
+    file_path: logs/audit.jsonl
+    max_bytes: 10485760
+    backups: 5
