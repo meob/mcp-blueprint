@@ -70,6 +70,10 @@ class Blueprint:
             if not metadata.supports(engine):
                 self.logger.info("pack_skipped_for_engine", pack=pack_dir.name, engine=engine)
                 continue
+            allowed = self.config.server.packs
+            if allowed is not None and pack_dir.name not in allowed:
+                self.logger.info("pack_skipped_by_config", pack=pack_dir.name)
+                continue
             tools = load_tools_from_dir(tools_dir, pack_name=pack_dir.name, engine=engine)
             for tool in tools:
                 self._validate_tool_sql(tool)

@@ -32,14 +32,9 @@ uv run blueprint list-tools --config config
 uv run blueprint list-tools --config config
 ```
 
-With the default PostgreSQL engine the server exposes the four Sakila store
-tools plus the twelve DBA tools:
+With the default PostgreSQL engine the server exposes twelve DBA tools:
 
 ```
-get_customer_rentals
-get_film
-search_customer
-search_films
 get_database_sizes
 get_database_version
 get_index_health

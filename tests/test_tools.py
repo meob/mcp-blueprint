@@ -175,8 +175,8 @@ def test_template_pack_stays_loadable() -> None:
     assert tools[0].sql_for("postgresql") == "../sql/get_items.sql"
 
 
-def _write_pack(tmp_path, name: str, sql: str, tool_yaml: str) -> None:
-    pack_dir = tmp_path / "mypack"
+def _write_pack(tmp_path, name: str, sql: str, tool_yaml: str, pack_name: str = "mypack") -> None:
+    pack_dir = tmp_path / pack_name
     sql_dir = pack_dir / "sql"
     tools_dir = pack_dir / "tools"
     sql_dir.mkdir(parents=True, exist_ok=True)
@@ -229,3 +229,30 @@ def test_load_rejects_interpolated_template(tmp_path) -> None:
     app = _load_pack(tmp_path)
     with pytest.raises(ToolLoadError, match="interpolated"):
         app.load_packs()
+
+
+def test_load_filters_packs_by_config_allowlist(tmp_path) -> None:
+    _write_pack(
+        tmp_path,
+        "get_one",
+        "SELECT 1",
+        "name: get_one\ndescription: x\nsql: ../sql/get_one.sql\n",
+        pack_name="alpha",
+    )
+    _write_pack(
+        tmp_path,
+        "get_two",
+        "SELECT 2",
+        "name: get_two\ndescription: x\nsql: ../sql/get_two.sql\n",
+        pack_name="beta",
+    )
+    from blueprint.app import Blueprint
+    from blueprint.config import BlueprintConfig, DatabaseConfig, ServerConfig
+
+    config = BlueprintConfig(
+        server=ServerConfig(packs_dir=str(tmp_path), packs=["alpha"]),
+        database=DatabaseConfig(engine="postgresql", dsn="postgresql://localhost/app"),
+    )
+    app = Blueprint(config=config)
+    assert app.load_packs() == 1
+    assert {tool.pack_name for tool in app.registry.all()} == {"alpha"}

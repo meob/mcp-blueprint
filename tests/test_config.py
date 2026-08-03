@@ -19,6 +19,29 @@ def test_server_config_defaults() -> None:
     assert config.name == "mcp-blueprint"
     assert config.transport == "stdio"
     assert config.default_ttl == 30
+    assert config.packs is None
+
+
+def test_server_config_packs_from_list() -> None:
+    config = ServerConfig(packs=["sakila", "pg-dba"])
+    assert config.packs == ["sakila", "pg-dba"]
+
+
+def test_server_config_packs_from_csv_string() -> None:
+    config = ServerConfig(packs="sakila, pg-dba")
+    assert config.packs == ["sakila", "pg-dba"]
+
+
+def test_server_config_packs_empty_means_all() -> None:
+    config = ServerConfig(packs=" , ")
+    assert config.packs is None
+
+
+def test_server_config_packs_unknown_type_rejected() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ServerConfig(packs=123)
 
 
 def test_invalid_transport_rejected() -> None:

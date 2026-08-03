@@ -50,6 +50,7 @@ class ServerConfig(BaseModel):
     packs_dir: str = "packs"
     cache_maxsize: int = 256
     max_rows: int = 1000
+    packs: list[str] | None = None
 
     @field_validator("transport")
     @classmethod
@@ -57,6 +58,20 @@ class ServerConfig(BaseModel):
         if value not in {"stdio", "http", "streamable-http"}:
             raise ValueError(f"unsupported transport: {value}")
         return value
+
+    @field_validator("packs", mode="before")
+    @classmethod
+    def _validate_packs(cls, value: object) -> list[str] | None:
+        """Normalize the pack allowlist from a YAML list or a CSV string."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            names = [item.strip() for item in value.split(",") if item.strip()]
+            return names or None
+        if isinstance(value, list):
+            names = [str(item).strip() for item in value if str(item).strip()]
+            return names or None
+        raise ValueError(f"invalid packs value: {value!r}")
 
 
 class PoolConfig(BaseModel):

@@ -33,6 +33,24 @@ When `engines` is present, the pack is loaded only if the configured engine
 (`database.engine`) is listed.  When absent, the pack loads on every engine.
 The pack manifest is optional: a pack without `pack.yaml` is engine-agnostic.
 
+### Per-server pack allowlist
+
+A server can restrict which packs it loads, on top of the engine filter, with
+`server.packs` in `server.yaml` (a list of pack names).  When set, only packs
+whose directory name is listed are loaded; when omitted (the default) all
+engine-compatible packs load.  The value also accepts a comma-separated string,
+so it can be driven per server via environment expansion:
+
+```yaml
+server:
+  packs: ${MCP_BLUEPRINT_SERVER_PACKS:-}
+```
+
+With `MCP_BLUEPRINT_SERVER_PACKS=sakila` the server exposes only the Sakila
+tools; `MCP_BLUEPRINT_SERVER_PACKS=pg-dba` only the DBA tools.  This lets two
+MCP server entries share one configuration directory while serving different
+pack sets against different databases.
+
 ## Tool definition
 
 Each tool is a single YAML file:
