@@ -33,6 +33,18 @@ uv pip install -e .
 
 After installation the `blueprint` executable is on your `PATH`.
 
+## Install with Docker
+
+The repository ships a `Dockerfile` and a `docker-compose.yaml`.  See
+[docs/docker.md](docker.md) for the full walkthrough.  Quick start:
+
+```bash
+docker compose up --build
+```
+
+This starts a PostgreSQL instance and a `blueprint` server exposing the
+`pg-dba` pack over Streamable HTTP at `http://localhost:8000/mcp`.
+
 ## Development tools
 
 The repository ships with:

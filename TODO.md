@@ -59,8 +59,9 @@ Checkboxes track the current MVP status.
 
 * [x] Implement Streamable HTTP transport
 * [x] Configuration options
-* [ ] Health endpoint
-* [ ] Docker example
+* [ ] Health endpoint (see the Docker section; the compose stack uses a TCP
+      healthcheck for now)
+* [x] Docker example
 
 ---
 
@@ -346,9 +347,12 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 # Docker
 
-* [ ] Dockerfile
-* [ ] Docker Compose example
-* [ ] Streamable HTTP example
+* [x] Dockerfile (multi-stage, uv builder, non-root runtime)
+* [x] Docker Compose example (`docker-compose.yaml`: PostgreSQL + `blueprint`
+      server over Streamable HTTP with health checks)
+* [x] Streamable HTTP example
+* [ ] Health endpoint (the compose stack uses a TCP healthcheck; a dedicated
+      HTTP endpoint is still open)
 
 ---
 
@@ -382,9 +386,18 @@ Examples:
 * [ ] Pack installer
 * [ ] Pack repository
 * [ ] Web administration UI
+* [ ] GUI for "programming" packs: a visual editor to author and configure
+      packs (tool YAML + SQL) and to monitor/control them at runtime
+      (tool usage, health, results) — useful both for configuration and
+      for control
 * [x] Metrics endpoint
 * [x] Prometheus integration
 * [ ] NoSQL adapters
+* [ ] Per-server environment label (e.g. `server.label: "docker-demo"`)
+      embedded in every tool description, so agents can tell which
+      database a server targets even when several Blueprint servers expose
+      the same tool names (tool-name prefixing already disambiguates in
+      clients that prefix server names)
 
 ---
 

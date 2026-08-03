@@ -153,6 +153,19 @@ Register it in OpenCode:
 }
 ```
 
+## 5. Run with Docker
+
+The repository ships a `Dockerfile` and a `docker-compose.yaml` that start a
+PostgreSQL instance and the `pg-dba` server over Streamable HTTP:
+
+```bash
+docker compose up --build
+```
+
+The server is then available at `http://localhost:8000/mcp`.  See
+[docs/docker.md](docker.md) for configuration, health checks and production
+notes.
+
 ## What to ask the LLM
 
 The exposed tools are domain-oriented.  Ask for information, not SQL.

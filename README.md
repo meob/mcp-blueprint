@@ -75,8 +75,17 @@ uv sync --all-extras --dev
 uv run blueprint serve --config config --transport stdio
 ```
 
-For a full walkthrough see [docs/installation.md](docs/installation.md) and
-[docs/quickstart.md](docs/quickstart.md).
+Or run it in Docker with a bundled PostgreSQL over Streamable HTTP:
+
+```bash
+docker compose up --build
+```
+
+The server is then available at `http://localhost:8000/mcp`.
+
+For a full walkthrough see [docs/installation.md](docs/installation.md),
+[docs/quickstart.md](docs/quickstart.md) and
+[docs/docker.md](docs/docker.md).
 
 ---
 
@@ -157,6 +166,8 @@ mcp-blueprint/
     docs/
     examples/
     tests/
+    Dockerfile
+    docker-compose.yaml
 ```
 
 A pack contains everything needed for a specific domain.

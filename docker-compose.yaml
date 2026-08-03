@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    environment:
+      POSTGRES_USER: pgbench
+      POSTGRES_DB: pgbench
+      # Development only: allows password-less local connections.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init/init-db.sh:/docker-entrypoint-initdb.d/01-init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pgbench -d pgbench"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  blueprint:
+    build: .
+    command: ["blueprint", "serve", "--config", "config", "--transport", "http", "--host", "0.0.0.0"]
+    environment:
+      MCP_BLUEPRINT_DATABASE_ENGINE: postgresql
+      MCP_BLUEPRINT_DATABASE_URL: postgresql://monitor@postgres:5432/pgbench
+      MCP_BLUEPRINT_SERVER_PACKS: pg-dba
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 5)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
