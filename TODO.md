@@ -52,7 +52,7 @@ Checkboxes track the current MVP status.
 
 * [x] Implement stdio transport
 * [ ] Test with Claude Desktop
-* [ ] Test with OpenCode
+* [x] Test with OpenCode
 * [ ] Test with Gemini CLI
 
 ### Streamable HTTP
@@ -161,6 +161,7 @@ Checkboxes track the current MVP status.
 * [x] Role metadata
 * [x] Confirmation flag
 * [ ] Future authentication hooks
+* [ ] Check against injection, parameters, unlimited queries
 
 ---
 
@@ -173,13 +174,37 @@ Checkboxes track the current MVP status.
 
 ---
 
+# Sakila example pack
+
+The recommended first example: a small, domain-oriented pack on PostgreSQL
+that lets an agent run a DVD rental store chatbot without writing SQL.  See
+`docs/sakila.md` for the full walkthrough.
+
+* [x] Create `packs/sakila` (PostgreSQL, domain-oriented, from a reference pack)
+* [x] `search_films(title?, category?, rating?)` — popularity order, rating
+      translated to `rating_label`/`min_age` in SQL, `available_copies`
+* [x] `get_film(film_id)` — full record with cast, categories and per-store
+      availability
+* [x] `search_customer(name)`
+* [x] `get_customer_rentals(customer_id)` — `active`/`overdue`/`returned` status
+* [x] Tool descriptions steer the agent (e.g. `search_customer` points to
+      `get_customer_rentals` to check a customer's situation)
+* [x] First tools with real parameters: `get_largest_objects` accepts an
+      optional `object_name` LIKE filter on both reference DBA packs
+* [x] Parameterized SQL escapes literal `%` as `%%` (documented in
+      `docs/pack_development.md`) and the pipeline binds only non-`None`
+      parameters
+
+---
+
 # Reference DBA Packs
 
-The reference implementations are two independent, single-engine packs that
-expose the same 12 tools: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
-(MySQL 8+).  The engine is declared in `pack.yaml` (`engines: [postgresql]` /
-`engines: [mysql]`); the configured engine selects which pack loads.  Each pack
-is a complete, copyable example of a Blueprint customization.
+More specialized administration packs.  The reference implementations are two
+independent, single-engine packs that expose the same 12 tools:
+`packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba` (MySQL 8+).  The engine
+is declared in `pack.yaml` (`engines: [postgresql]` / `engines: [mysql]`); the
+configured engine selects which pack loads.  Each pack is a complete,
+copyable example of a Blueprint customization.
 
 ## KPI dashboards
 
@@ -230,13 +255,13 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 ---
 
-## Next pack: Sakila
+# Oracle DBA Pack
 
-* [ ] Create `packs/sakila` from the template (or a reference pack layout)
+* [ ] Initial implementation
 
 ---
 
-# Oracle DBA Pack
+# ClickHouse DBA Pack
 
 * [ ] Initial implementation
 

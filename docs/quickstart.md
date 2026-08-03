@@ -16,9 +16,9 @@ database:
   dsn: ${MCP_BLUEPRINT_DATABASE_URL:-postgresql://pgbench@localhost:5432/pgbench}
 ```
 
-The engine also selects the pack: with `engine: postgresql` the `pg-dba` pack
-loads; with `engine: mysql` the `mysql-dba` pack loads.  The two packs expose
-the same tool names.  The engine is env-overridable too:
+The engine also selects the pack: with `engine: postgresql` the `pg-dba` and
+`sakila` packs load; with `engine: mysql` the `mysql-dba` pack loads.  The two
+DBA packs expose the same tool names.  The engine is env-overridable too:
 
 ```bash
 MCP_BLUEPRINT_DATABASE_ENGINE=mysql \
@@ -32,10 +32,16 @@ uv run blueprint list-tools --config config
 uv run blueprint list-tools --config config
 ```
 
-Output:
+With the default PostgreSQL engine the server exposes the four Sakila store
+tools plus the twelve DBA tools:
 
 ```
+get_customer_rentals
+get_film
+search_customer
+search_films
 get_database_sizes
+get_database_version
 get_index_health
 get_largest_objects
 get_maintenance_status
@@ -115,8 +121,10 @@ environment overrides.  The following OpenCode configuration exposes the
 }
 ```
 
-Each server loads only the pack matching its engine, while exposing the same
-12 tool names.  Restart the MCP client after changing its configuration.
+Each server loads only the packs matching its engine: on PostgreSQL the
+`pg-dba` and `sakila` packs, on MySQL the `mysql-dba` pack.  The two DBA packs
+expose the same 12 tool names across engines.  Restart the MCP client after
+changing its configuration.
 
 ## 4. Run the server over Streamable HTTP
 
@@ -140,7 +148,15 @@ Register it in OpenCode:
 
 ## What to ask the LLM
 
-The exposed tools are domain-oriented.  Ask for information, not SQL:
+The exposed tools are domain-oriented.  Ask for information, not SQL.
+
+The Sakila store tools:
+
+* "what should I recommend to a family with a 12-year-old?" → `search_films`
+* "tell me more about this film" → `get_film`
+* "is my customer returning the DVDs on time?" → `get_customer_rentals`
+
+The DBA tools:
 
 * "how is the database doing overall?" → `get_operational_kpis`
 * "any performance problems right now?" → `get_performance_kpis`

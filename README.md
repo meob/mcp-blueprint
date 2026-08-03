@@ -56,9 +56,7 @@ search_customer()
 or, for database administration,
 
 ```
-get_operational_kpis()
 get_performance_kpis()
-get_security_kpis()
 get_users()
 get_database_sizes()
 get_replication_status()
@@ -146,17 +144,11 @@ run_query()
 
 ```
 mcp-blueprint/
-
     blueprint/
-
     config/
-
     packs/
-
     docs/
-
     examples/
-
     tests/
 ```
 
@@ -166,21 +158,13 @@ Example:
 
 ```
 packs/
-
     pg-dba/
-
         tools/
-
         sql/
-
         pack.yaml
-
     mysql-dba/
-
     sakila/
-
     customer/
-
     warehouse/
 ```
 
@@ -200,18 +184,9 @@ Every tool is described using YAML.
 Example
 
 ```yaml
-name: get_connections
-
-description: Return connected sessions.
-
-parameters:
-
-  database:
-    type: string
-    required: false
-
-sql:
-  postgresql: sql/postgresql/get_connections.sql
+name: get_largest_objects
+description: Return the largest tables and indexes by size, ordered descending.
+sql: ../sql/get_largest_objects.sql
 ```
 
 No Python code should be required to create a new tool.
@@ -224,14 +199,9 @@ SQL remains external.
 
 ```
 sql/
-
-    postgresql/
-
         get_users.sql
-
         get_database_sizes.sql
-
-        get_replication_status.sql
+        get_largest_objects.sql
 ```
 
 Changing the database version or rewriting a query should never require changing Python code.
@@ -256,15 +226,51 @@ Every pack is independent.
 
 ---
 
+# Template pack
+
+`template/pack` is the minimal skeleton for a new pack (pack metadata, one
+example tool, one example SQL query).  It is not auto-loaded by the framework.
+To start a new domain pack, copy the template or an existing pack such as
+`packs/sakila` and replace tool names, descriptions and SQL.  See
+`template/README.md`.
+
+---
+
+# Example pack: Sakila
+
+`packs/sakila` is the recommended first example: a small, domain-oriented pack
+for the [Sakila sample database](https://dev.mysql.com/doc/sakila/en/) on
+PostgreSQL.  It lets an agent run a DVD rental store chatbot — recommend
+films, inspect a film in detail and review a customer's rental activity —
+without ever writing SQL.
+
+| Tool                   | Purpose                                            |
+| ---------------------- | -------------------------------------------------- |
+| `search_films`         | Recommend films by optional title, category, rating. |
+| `get_film`             | Full catalog record for one film.                  |
+| `search_customer`      | Find a customer by first or last name.             |
+| `get_customer_rentals` | Rental history with an active/overdue/returned status. |
+
+Domain knowledge lives in SQL, not Python: `search_films` translates MPAA
+rating codes into a human-readable `rating_label` and a numeric `min_age`,
+and `get_customer_rentals` computes the rental `status`.  The tool
+descriptions steer the agent, e.g. `search_customer` points at
+`get_customer_rentals` to check a customer's situation.  See
+[docs/sakila.md](docs/sakila.md) for the full walkthrough.
+
+The DBA packs below are more specialized administration packs; study Sakila
+first to see how a domain pack is built.
+
+---
+
 # Reference packs
 
-The reference implementations are two independent administration packs with
+The reference implementations are independent administration packs with
 the **same 12 tools**: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
-(MySQL 8+).  Each is single-engine (`engines: [postgresql]` / `engines: [mysql]`
-in `pack.yaml`), self-contained and can evolve independently with engine-specific
+(MySQL 8+).  Each is self-contained and can evolve independently with engine-specific
 tools.
 
-With `database.engine: postgresql` only `pg-dba` loads; with
+With `database.engine: postgresql` the `pg-dba` and `sakila` packs load; with
 `database.engine: mysql` only `mysql-dba` loads.
 
 Each pack contains ready-to-use tools for database administration, split into
@@ -290,18 +296,8 @@ Detail tools:
 
 The packs do not expose SQL execution.
 
-Only curated DBA operations.  All tools work with least-privilege monitoring
+Only curated DBA operations.  All tools can work with least-privilege monitoring
 users (e.g. the `pg_monitor` role on PostgreSQL).
-
----
-
-# Template pack
-
-`template/pack` is the minimal skeleton for a new pack (pack metadata, one
-example tool, one example SQL query).  It is not auto-loaded by the framework.
-To start a new domain pack, copy the template or an existing pack such as
-`packs/pg-dba` and replace tool names, descriptions and SQL.  See
-`template/README.md`.
 
 ---
 
