@@ -7,15 +7,18 @@ result formatting and finally JSON-safe serialization.
 
 from __future__ import annotations
 
+import uuid
 from time import perf_counter
 from typing import Any
 
 import structlog
+import structlog.contextvars
 
 from blueprint.cache import Cache
 from blueprint.db.base import DatabaseAdapter
 from blueprint.errors import ToolSecurityError
 from blueprint.formatting import ResultFormatter, json_safe
+from blueprint.logging import audit_enabled, get_audit_logger
 from blueprint.sql.guard import ensure_read_only, ensure_single_statement
 from blueprint.sql.loader import SQLLoader
 from blueprint.sql.renderer import SQLRenderer
@@ -51,44 +54,79 @@ class ToolPipeline:
     async def execute(self, tool_name: str, raw_params: dict[str, Any]) -> dict[str, Any]:
         """Run the tool named ``tool_name`` and return a JSON-safe response."""
         started = perf_counter()
-        metadata = self._registry.get(tool_name)
-        if not metadata.enabled:
-            from blueprint.errors import ToolDisabledError
+        structlog.contextvars.clear_contextvars()
+        structlog.contextvars.bind_contextvars(trace_id=uuid.uuid4().hex)
+        metadata = None
+        try:
+            metadata = self._registry.get(tool_name)
+            if not metadata.enabled:
+                from blueprint.errors import ToolDisabledError
 
-            raise ToolDisabledError(f"tool is disabled: {tool_name}")
+                raise ToolDisabledError(f"tool is disabled: {tool_name}")
 
-        sql_path = metadata.sql_for(self._adapter.engine)
-        if sql_path is None:
-            from blueprint.errors import ToolNotFoundError
+            sql_path = metadata.sql_for(self._adapter.engine)
+            if sql_path is None:
+                from blueprint.errors import ToolNotFoundError
 
-            raise ToolNotFoundError(
-                f"tool is not available for engine {self._adapter.engine}: {tool_name}"
+                raise ToolNotFoundError(
+                    f"tool is not available for engine {self._adapter.engine}: {tool_name}"
+                )
+
+            params = validate_parameters(metadata, raw_params)
+            cache_key = (metadata.name, tuple(sorted(params.items())))
+
+            cached = self._cache.get(cache_key)
+            if cached is not None:
+                logger.info("tool_cache_hit", tool=tool_name)
+                response = self._response(metadata.name, cached, started, cache_hit=True)
+            else:
+                sql = self._sql_loader.load(sql_path, metadata.source)
+                sql = self._renderer.render(sql, params)
+                logger.debug("tool_executing", tool=tool_name, sql=sql)
+
+                self._enforce_sql_policy(tool_name, sql, metadata.writes)
+
+                bound = {name: value for name, value in params.items() if value is not None}
+                rows = await self._adapter.execute(sql, bound)
+                rows = self._formatter.apply(rows, metadata.format)
+                rows = self._cap_rows(tool_name, rows)
+
+                ttl = metadata.cache.ttl if metadata.cache else self._default_ttl
+                if ttl:
+                    self._cache.set(cache_key, rows, ttl)
+
+                response = self._response(metadata.name, rows, started)
+
+            self._record_audit(
+                "tool_executed",
+                tool=tool_name,
+                pack=metadata.pack_name,
+                params=raw_params,
+                duration_ms=response["duration_ms"],
+                rows=response["row_count"],
+                status="success",
+                cache_hit=response["cache_hit"],
             )
+            return response
+        except Exception as exc:
+            self._record_audit(
+                "tool_failed",
+                tool=tool_name,
+                pack=metadata.pack_name if metadata is not None else None,
+                params=raw_params,
+                duration_ms=round((perf_counter() - started) * 1000, 2),
+                status="error",
+                error=str(exc),
+            )
+            raise
+        finally:
+            structlog.contextvars.clear_contextvars()
 
-        params = validate_parameters(metadata, raw_params)
-        cache_key = (metadata.name, tuple(sorted(params.items())))
-
-        cached = self._cache.get(cache_key)
-        if cached is not None:
-            logger.info("tool_cache_hit", tool=tool_name)
-            return self._response(metadata.name, cached, started, cache_hit=True)
-
-        sql = self._sql_loader.load(sql_path, metadata.source)
-        sql = self._renderer.render(sql, params)
-        logger.debug("tool_executing", tool=tool_name, sql=sql)
-
-        self._enforce_sql_policy(tool_name, sql, metadata.writes)
-
-        bound = {name: value for name, value in params.items() if value is not None}
-        rows = await self._adapter.execute(sql, bound)
-        rows = self._formatter.apply(rows, metadata.format)
-        rows = self._cap_rows(tool_name, rows)
-
-        ttl = metadata.cache.ttl if metadata.cache else self._default_ttl
-        if ttl:
-            self._cache.set(cache_key, rows, ttl)
-
-        return self._response(metadata.name, rows, started)
+    @staticmethod
+    def _record_audit(event: str, **fields: Any) -> None:
+        """Emit one audit record per tool execution when the audit is enabled."""
+        if audit_enabled():
+            get_audit_logger().info(event, **fields)
 
     def _enforce_sql_policy(self, tool_name: str, sql: str, writes: bool) -> None:
         """Reject rendered SQL that violates the read-only policy.

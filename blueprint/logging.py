@@ -1,49 +1,115 @@
 """Structured logging setup.
 
-Logs are always written to ``stderr``.  Under the stdio transport ``stdout``
-is reserved for the MCP protocol stream and must never be used for logging.
+Logs are written to ``stderr`` by default; under the stdio transport
+``stdout`` is reserved for the MCP protocol stream and must never be used for
+logging.
+
+By default nothing is persisted: a single JSON (or console) stream on stderr.
+``LoggingConfig.file_path`` adds a rotating file handler for the main log.
+``LoggingConfig.audit`` enables a dedicated audit channel that records one
+JSON line per tool execution.
+
+Every event carries a ``trace_id`` bound per tool call (see the pipeline) so
+records from a single request can be correlated.  Sensitive values are masked
+by default through :func:`redact_secrets`.
 """
 
 from __future__ import annotations
 
 import logging
 import sys
-from typing import cast
+from collections.abc import MutableMapping
+from logging.handlers import RotatingFileHandler
+from typing import Any, cast
 
 import structlog
+import structlog.contextvars
 
-from blueprint.config import LoggingConfig
+from blueprint.config import AuditConfig, LoggingConfig
 
 _configured = False
+_audit_enabled = False
+
+_SENSITIVE_SUBSTRINGS = (
+    "password",
+    "passwd",
+    "pwd",
+    "secret",
+    "token",
+    "apikey",
+    "api_key",
+    "authorization",
+    "credential",
+    "private_key",
+    "access_key",
+    "dsn",
+    "connstring",
+    "connection_string",
+)
 
 
-def configure_logging(config: LoggingConfig | None = None) -> structlog.stdlib.BoundLogger:
-    """Configure structlog and return the root logger.
+def _is_sensitive(key: str) -> bool:
+    lowered = key.lower()
+    return any(word in lowered for word in _SENSITIVE_SUBSTRINGS)
 
-    Safe to call multiple times; only the first call performs configuration.
-    """
-    global _configured
-    config = config or LoggingConfig()
 
-    level = getattr(logging, config.level.upper(), logging.INFO)
-    logging.basicConfig(stream=sys.stderr, level=level, format="%(message)s")
+def _redact(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: "***" if _is_sensitive(str(key)) else _redact(item) for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact(item) for item in value]
+    return value
 
-    renderer: structlog.types.Processor
-    if config.format == "console":
-        renderer = structlog.dev.ConsoleRenderer()
-    else:
-        renderer = structlog.processors.JSONRenderer()
 
-    shared_processors: list[structlog.types.Processor] = [
+def redact_secrets(
+    _logger: Any, _method: str, event_dict: MutableMapping[str, Any]
+) -> MutableMapping[str, Any] | str | bytes | bytearray | tuple[Any, ...]:
+    """Mask values whose keys identify sensitive data, recursively."""
+    return cast(MutableMapping[str, Any], _redact(event_dict))
+
+
+def _shared_processors() -> list[structlog.types.Processor]:
+    return [
         structlog.contextvars.merge_contextvars,
+        redact_secrets,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
     ]
 
+
+def _make_formatter(renderer: structlog.types.Processor) -> structlog.stdlib.ProcessorFormatter:
+    return structlog.stdlib.ProcessorFormatter(
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            renderer,
+        ],
+        foreign_pre_chain=_shared_processors(),
+    )
+
+
+def configure_logging(config: LoggingConfig | None = None) -> structlog.stdlib.BoundLogger:
+    """Configure structlog and stdlib logging.
+
+    Safe to call multiple times; structlog is configured once, while the
+    handlers are (re)attached on every call.
+    """
+    global _configured, _audit_enabled
+    config = config or LoggingConfig()
+    _audit_enabled = bool(config.audit and config.audit.enabled)
+
+    level = getattr(logging, config.level.upper(), logging.INFO)
+
+    if config.format == "console":
+        renderer: structlog.types.Processor = structlog.dev.ConsoleRenderer()
+    else:
+        renderer = structlog.processors.JSONRenderer()
+
     if not _configured:
         structlog.configure(
             processors=[
-                *shared_processors,
+                *_shared_processors(),
                 structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
             ],
             logger_factory=structlog.stdlib.LoggerFactory(),
@@ -52,17 +118,63 @@ def configure_logging(config: LoggingConfig | None = None) -> structlog.stdlib.B
         )
         _configured = True
 
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            renderer,
-        ],
-        foreign_pre_chain=shared_processors,
-    )
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(formatter)
+    formatter = _make_formatter(renderer)
+
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
+    handlers[0].setFormatter(formatter)
+
+    if config.file_path:
+        file_handler = RotatingFileHandler(
+            config.file_path,
+            maxBytes=config.file_max_bytes,
+            backupCount=config.file_backups,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(formatter)
+        handlers.append(file_handler)
+
     root = logging.getLogger()
-    root.handlers = [handler]
+    root.handlers = handlers
     root.setLevel(level)
 
+    _configure_audit_logger(config)
+
     return cast(structlog.stdlib.BoundLogger, structlog.get_logger())
+
+
+def _configure_audit_logger(config: LoggingConfig) -> None:
+    audit_logger = logging.getLogger("audit")
+    if not config.audit or not config.audit.enabled:
+        audit_logger.handlers = []
+        audit_logger.propagate = False
+        audit_logger.setLevel(logging.CRITICAL + 1)
+        return
+    audit: AuditConfig = config.audit
+    handler = RotatingFileHandler(
+        audit.file_path,
+        maxBytes=audit.max_bytes,
+        backupCount=audit.backups,
+        encoding="utf-8",
+    )
+    handler.setFormatter(
+        structlog.stdlib.ProcessorFormatter(
+            processors=[
+                structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+                structlog.processors.JSONRenderer(),
+            ],
+            foreign_pre_chain=[],
+        )
+    )
+    audit_logger.handlers = [handler]
+    audit_logger.propagate = False
+    audit_logger.setLevel(logging.INFO)
+
+
+def audit_enabled() -> bool:
+    """Return whether the audit log is active."""
+    return _audit_enabled
+
+
+def get_audit_logger() -> structlog.stdlib.BoundLogger:
+    """Return the audit logger, which emits JSONL tool-execution records."""
+    return cast(structlog.stdlib.BoundLogger, structlog.get_logger("audit"))

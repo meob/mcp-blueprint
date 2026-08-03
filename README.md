@@ -125,7 +125,8 @@ Each tool should represent a meaningful operation.
 Beyond the tool API, MCP Blueprint owns the operational concerns — SQL safety
 (read-only by default, explicit opt-in for writes, injection-proof
 parameters), structured logging and telemetry — so pack authors never have to
-implement them; see the [security model](docs/pack_development.md#security-model).
+implement them; see the [security model](docs/pack_development.md#security-model)
+and [logging, audit and tracing](docs/logging.md).
 
 Good examples
 

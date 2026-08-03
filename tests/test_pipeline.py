@@ -211,3 +211,51 @@ async def test_pipeline_no_cap_when_configured_none(tmp_path) -> None:
     pipeline = build_pipeline(adapter, make_metadata(tmp_path), max_rows=None)
     result = await pipeline.execute("get_data", {})
     assert result["row_count"] == 5
+
+
+async def test_pipeline_emits_audit_record(tmp_path) -> None:
+    import json
+
+    from blueprint.config import AuditConfig, LoggingConfig
+    from blueprint.logging import configure_logging
+
+    audit_file = tmp_path / "audit.jsonl"
+    configure_logging(LoggingConfig(audit=AuditConfig(enabled=True, file_path=str(audit_file))))
+    adapter = FakeAdapter(rows=[{"datname": "pgbench", "n": 1}])
+    pipeline = build_pipeline(adapter, make_metadata(tmp_path))
+    result = await pipeline.execute("get_data", {"database": "pgbench"})
+    assert result["status"] == "success"
+
+    lines = audit_file.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["event"] == "tool_executed"
+    assert record["tool"] == "get_data"
+    assert record["status"] == "success"
+    assert record["rows"] == 1
+    assert record["cache_hit"] is False
+    assert record["trace_id"]
+
+
+async def test_pipeline_emits_audit_record_on_error(tmp_path) -> None:
+    import json
+
+    from blueprint.config import AuditConfig, LoggingConfig
+    from blueprint.logging import configure_logging
+
+    audit_file = tmp_path / "audit.jsonl"
+    configure_logging(LoggingConfig(audit=AuditConfig(enabled=True, file_path=str(audit_file))))
+    adapter = FakeAdapter(rows=[])
+    adapter.fail = DatabaseError("boom")
+    pipeline = build_pipeline(adapter, make_metadata(tmp_path))
+    with pytest.raises(DatabaseError):
+        await pipeline.execute("get_data", {})
+
+    lines = audit_file.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["event"] == "tool_failed"
+    assert record["tool"] == "get_data"
+    assert record["status"] == "error"
+    assert record["error"] == "boom"
+    assert record["trace_id"]

@@ -184,6 +184,23 @@ Checkboxes track the current MVP status.
 
 ---
 
+# Observability
+
+* [x] Structured JSON logging on stderr (structlog), console format option
+* [x] Optional rotating file handler for the main log (`file_path`,
+      `file_max_bytes`, `file_backups`)
+* [x] Audit channel: one JSONL record per tool execution
+      (`tool_executed`/`tool_failed` with tool, pack, params, duration,
+      rows, status), disabled by default
+* [x] Per-call `trace_id` bound via structlog contextvars, merged into all
+      log and audit records
+* [x] Sensitive data redaction by default (passwords, tokens, DSNs, ...)
+* [x] `docs/logging.md` documenting activation and control
+* [ ] OpenTelemetry exporter as an optional extra (spans/metrics on top of
+      the existing `trace_id`)
+
+---
+
 # Sakila example pack
 
 The recommended first example: a small, domain-oriented pack on PostgreSQL

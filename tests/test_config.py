@@ -6,6 +6,7 @@ import pytest
 
 from blueprint.config import (
     DatabaseConfig,
+    LoggingConfig,
     ServerConfig,
     load_config,
     load_database_config,
@@ -42,6 +43,25 @@ def test_server_config_packs_unknown_type_rejected() -> None:
 
     with pytest.raises(ValidationError):
         ServerConfig(packs=123)
+
+
+def test_logging_config_defaults() -> None:
+    config = LoggingConfig()
+    assert config.level == "info"
+    assert config.format == "json"
+    assert config.file_path is None
+    assert config.audit is None
+
+
+def test_logging_config_file_and_audit() -> None:
+    config = LoggingConfig(
+        file_path="logs/blueprint.jsonl",
+        audit={"enabled": True, "file_path": "logs/audit.jsonl"},
+    )
+    assert config.file_path == "logs/blueprint.jsonl"
+    assert config.audit is not None
+    assert config.audit.enabled is True
+    assert config.audit.file_path == "logs/audit.jsonl"
 
 
 def test_invalid_transport_rejected() -> None:

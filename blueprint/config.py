@@ -124,11 +124,28 @@ class DatabaseConfig(BaseModel):
         return f"{self.engine}://{auth}{self.host}:{self.port}/{self.dbname}"
 
 
+class AuditConfig(BaseModel):
+    """Audit log configuration (one JSON record per tool execution)."""
+
+    enabled: bool = False
+    file_path: str = "audit.jsonl"
+    max_bytes: int = 10 * 1024 * 1024
+    backups: int = 5
+
+
 class LoggingConfig(BaseModel):
-    """Structured logging configuration."""
+    """Structured logging configuration.
+
+    By default logs go to ``stderr`` only.  ``file_path`` adds a rotating file
+    handler; ``audit`` enables the dedicated audit channel.
+    """
 
     level: str = "info"
     format: str = "json"
+    file_path: str | None = None
+    file_max_bytes: int = 10 * 1024 * 1024
+    file_backups: int = 5
+    audit: AuditConfig | None = None
 
 
 class BlueprintConfig(BaseModel):
