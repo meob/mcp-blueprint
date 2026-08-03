@@ -122,6 +122,11 @@ An MCP server should look like a REST API, not like a SQL console.
 
 Each tool should represent a meaningful operation.
 
+Beyond the tool API, MCP Blueprint owns the operational concerns — SQL safety
+(read-only by default, explicit opt-in for writes, injection-proof
+parameters), structured logging and telemetry — so pack authors never have to
+implement them; see the [security model](docs/pack_development.md#security-model).
+
 Good examples
 
 ```
