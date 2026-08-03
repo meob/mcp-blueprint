@@ -32,9 +32,14 @@ uv run blueprint list-tools --config config
 uv run blueprint list-tools --config config
 ```
 
-With the default PostgreSQL engine the server exposes twelve DBA tools:
+With the default PostgreSQL engine the server exposes all engine-compatible
+packs: the four Sakila store tools plus the twelve DBA tools:
 
 ```
+get_customer_rentals
+get_film
+search_customer
+search_films
 get_database_sizes
 get_database_version
 get_index_health
@@ -48,6 +53,12 @@ get_slow_queries
 get_tuning_configuration
 get_users
 ```
+
+To expose a subset per server, restrict the pack allowlist via
+`MCP_BLUEPRINT_SERVER_PACKS` (comma-separated pack names).  For example
+`MCP_BLUEPRINT_SERVER_PACKS=sakila` loads only the four Sakila tools and
+`MCP_BLUEPRINT_SERVER_PACKS=pg-dba` only the twelve DBA tools.  See
+`docs/pack_development.md` for details.
 
 ## 3. Run the server over stdio
 
