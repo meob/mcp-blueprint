@@ -1,0 +1,7 @@
+name: sakila
+version: 0.1.0
+engines: [postgresql]
+description: >-
+  Sakila DVD rental store pack.  Tools to recommend films, show full film
+  details and inspect customer rental activity.  Requires the Sakila sample
+  database for PostgreSQL.

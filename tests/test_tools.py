@@ -159,8 +159,8 @@ def test_app_loads_only_engine_matching_packs() -> None:
     assert {tool.pack_name for tool in app.registry.all()} == {"mysql-dba"}
 
     postgres = Blueprint(config_path=str(project_root / "config"))
-    assert postgres.load_packs() == 12
-    assert {tool.pack_name for tool in postgres.registry.all()} == {"pg-dba"}
+    assert postgres.load_packs() == 16
+    assert {tool.pack_name for tool in postgres.registry.all()} == {"pg-dba", "sakila"}
 
 
 def test_template_pack_stays_loadable() -> None:

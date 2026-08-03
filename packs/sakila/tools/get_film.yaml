@@ -1,0 +1,12 @@
+name: get_film
+description: >-
+  Return the full catalog record for a single film, including description,
+  translated rating, cast, categories and per-store availability.
+parameters:
+  film_id:
+    type: integer
+    required: true
+    description: Unique film identifier.
+sql: ../sql/get_film.sql
+cache:
+  ttl: 30

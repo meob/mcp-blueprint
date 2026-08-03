@@ -1,0 +1,15 @@
+name: get_customer_rentals
+description: >-
+  Check a customer's rental situation, for example when a customer asks
+  about their account or what they still have to return.  Returns the rental
+  history with the most recent first.  Rows with status active or overdue
+  are currently rented out; overdue means the return date has passed.
+  Returned rows describe what the customer has already seen.
+parameters:
+  customer_id:
+    type: integer
+    required: true
+    description: Unique customer identifier.
+sql: ../sql/get_customer_rentals.sql
+cache:
+  ttl: 30
