@@ -17,14 +17,35 @@ database:
 ```
 
 The engine also selects the pack: with `engine: postgresql` the `pg-dba` and
-`sakila` packs load; with `engine: mysql` the `mysql-dba` pack loads.  The two
-DBA packs expose the same tool names.  The engine is env-overridable too:
+`sakila` packs load; with `engine: mysql` only `mysql-dba` loads; with
+`oracle`, `clickhouse`, `sqlserver` or `mariadb` the matching `*-dba` pack
+loads.  All six DBA packs expose the same 13 tool names.  The engine aliases
+`postgres`, `mssql` and `sql_server` are accepted too.  The engine is
+env-overridable:
 
 ```bash
 MCP_BLUEPRINT_DATABASE_ENGINE=mysql \
 MCP_BLUEPRINT_DATABASE_URL="mysql://monitor:password@localhost:3306/mydb" \
 uv run blueprint list-tools --config config
 ```
+
+The four extra engines are optional.  Install their drivers through the extras
+and bring a database up with the provided compose stack:
+
+```bash
+uv sync --extra oracle --extra clickhouse --extra sqlserver   # or --all-extras
+docker compose -f docker-compose.databases.yaml up -d
+```
+
+| Engine       | Example DSN                                                          |
+| ------------ | -------------------------------------------------------------------- |
+| `oracle`     | `oracle://monitor:monitor_pw@localhost:1521/FREEPDB1`                |
+| `clickhouse` | `clickhouse://monitor:monitor_pw@localhost:9000/default`             |
+| `sqlserver`  | `sqlserver://sa:YourStrong!Passw0rd@localhost:1433/master`           |
+| `mariadb`    | `mariadb://monitor:monitor_pw@localhost:3307/mysakila`               |
+
+See [docs/docker.md](docker.md) for the container defaults and the
+least-privilege monitoring accounts the stack configures.
 
 ## 2. List the available tools
 
@@ -129,9 +150,10 @@ environment overrides.  The following OpenCode configuration exposes the
 ```
 
 Each server loads only the packs matching its engine: on PostgreSQL the
-`pg-dba` and `sakila` packs, on MySQL the `mysql-dba` pack.  The two DBA packs
-expose the same 12 tool names across engines.  Restart the MCP client after
-changing its configuration.
+`pg-dba` and `sakila` packs, on MySQL the `mysql-dba` pack, and so on for any
+of the six supported engines.  The DBA packs expose the same 13 tool names
+across engines, so a prompt written against one engine also works against the
+others.  Restart the MCP client after changing its configuration.
 
 ## 4. Run the server over Streamable HTTP
 
