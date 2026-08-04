@@ -1,0 +1,71 @@
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    environment:
+      ORACLE_PASSWORD: sys_pw
+      APP_USER: monitor
+      APP_USER_PASSWORD: monitor_pw
+    ports:
+      - "1521:1521"
+    volumes:
+      - ./docker/init/oracle-grants.sql:/container-entrypoint-initdb.d/01-grants.sql:ro
+    healthcheck:
+      test: ["CMD", "/opt/oracle/healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 120s
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: monitor
+      CLICKHOUSE_PASSWORD: monitor_pw
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "9000:9000"
+      - "8123:8123"
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "YourStrong!Passw0rd"
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong!Passw0rd' -C -Q 'SELECT 1'",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: root_pw
+      MARIADB_DATABASE: mysakila
+      MARIADB_USER: monitor
+      MARIADB_PASSWORD: monitor_pw
+    ports:
+      # host 3306 is reserved for the local mysakila instance (mysql-dba).
+      - "3307:3306"
+    volumes:
+      - ./docker/init/mariadb-grants.sql:/docker-entrypoint-initdb.d/01-grants.sql:ro
+      - ./docker/init/sakila/sakila-schema.sql:/docker-entrypoint-initdb.d/02-sakila-schema.sql:ro
+      - ./docker/init/sakila/sakila-data.sql:/docker-entrypoint-initdb.d/03-sakila-data.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12

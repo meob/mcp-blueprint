@@ -1,0 +1,5 @@
+name: get_replication_status
+description: 'Return the replication topology: instance role (primary or standby) and the configured replication channels with their state.'
+sql: ../sql/get_replication_status.sql
+cache:
+  ttl: 10

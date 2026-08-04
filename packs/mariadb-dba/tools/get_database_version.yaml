@@ -1,0 +1,5 @@
+name: get_database_version
+description: 'Return the database server version (short, numeric and full banner).'
+sql: ../sql/get_database_version.sql
+cache:
+  ttl: 3600

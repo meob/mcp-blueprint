@@ -39,6 +39,20 @@ dev = [
 metrics = [
     "prometheus-client>=0.20",
 ]
+oracle = [
+    "oracledb>=3.3",
+]
+clickhouse = [
+    "clickhouse-driver>=0.2.7",
+]
+sqlserver = [
+    "pyodbc>=5.0",
+]
+databases = [
+    "oracledb>=3.3",
+    "clickhouse-driver>=0.2.7",
+    "pyodbc>=5.0",
+]
 
 [project.scripts]
 blueprint = "blueprint.cli:main"

@@ -357,6 +357,47 @@ cannot express.
 
 ---
 
+# Decision 17
+
+## Four additional optional DBA engines
+
+### Decision
+
+`packs/oracle-dba`, `packs/clickhouse-dba`, `packs/sqlserver-dba` and
+`packs/mariadb-dba` expose the same 13 tools as the PostgreSQL/MySQL
+reference packs.  The drivers are optional extras (`[oracle]` = oracledb thin,
+`[clickhouse]` = clickhouse-driver, `[sqlserver]` = pyodbc; `mariadb` reuses
+the MySQL adapter on asyncmy).  The engine aliases `mssql`, `sql_server` and
+`postgres` are accepted in `database.engine`.
+
+### Rationale
+
+Each engine is a separate single-engine pack, matching the existing reference
+design; the four databases are only needed to develop and validate those
+packs, so their drivers ship as extras and a dedicated
+`docker-compose.databases.yaml` stack provisions them (Oracle Free on 1521,
+ClickHouse on 9000/8123, SQL Server on 1433, MariaDB on 3307) with
+least-privilege monitoring users.
+
+Two driver realities shaped the implementation:
+
+* **clickhouse-driver removed its asyncio client** (`clickhouse_driver.aio`)
+  after 0.2.6, so the adapter wraps the synchronous `Client` in
+  `asyncio.to_thread`; it still supports the `%(name)s` placeholder style
+  used by the SQL guard.  The server-side `{name:Type}` substitution is not
+  used because clickhouse-driver does not pass native query parameters.
+* **Reserved words cannot be column aliases**: `user` and `size` break
+  Oracle parsing, `user` and `schema` break SQL Server, so aliases are quoted
+  (`AS "size"`, `AS [user]`) to keep the same output column names across
+  packs.
+
+The MariaDB container is preloaded with the official Sakila sample data so
+the monitoring tools return meaningful rows out of the box; the Oracle init
+script must `ALTER SESSION SET CONTAINER = FREEPDB1` because the app user
+lives in the pluggable database, not the CDB root.
+
+---
+
 # Guiding Principle
 
 Every architectural decision should support the same long-term objective:

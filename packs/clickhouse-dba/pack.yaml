@@ -1,0 +1,14 @@
+name: clickhouse-dba
+version: 0.1.0
+engines: [clickhouse]
+description: >-
+  ClickHouse administration pack.  KPI dashboards (operational, performance,
+  security) and detail tools for users, storage, replication, statements and
+  maintenance.  Reads system tables; no special privileges required beyond a
+  read-only account.
+instructions: >-
+  For a complete overview of the database run the tools in this order:
+  get_database_version, get_database_sizes, get_largest_objects,
+  get_operational_kpis, get_performance_kpis,
+  get_slow_queries, get_connections. Use the remaining detail tools only
+  for follow-ups.

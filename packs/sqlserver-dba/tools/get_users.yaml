@@ -1,0 +1,5 @@
+name: get_users
+description: 'List database accounts with their attributes (superuser, login capability, create database, password status and expiry).'
+sql: ../sql/get_users.sql
+cache:
+  ttl: 60

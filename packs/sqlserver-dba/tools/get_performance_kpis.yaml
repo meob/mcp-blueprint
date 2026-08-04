@@ -1,0 +1,5 @@
+name: get_performance_kpis
+description: 'Performance KPIs with status: cache/buffer pool hit ratio, rollback ratio, temporary tables and open table cache usage.  Returns one row per KPI (kpi_name, current_value, unit, suggested_threshold, status).'
+sql: ../sql/get_performance_kpis.sql
+cache:
+  ttl: 10

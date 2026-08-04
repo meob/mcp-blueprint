@@ -185,6 +185,28 @@ Checkboxes track the current MVP status.
 
 ---
 
+# Agent guidance
+
+Help the LLM use the exposed tools correctly without accessing the database
+directly.
+
+* [x] Pack-level `instructions` (optional `pack.yaml` field) appended to every
+      tool description of that pack, e.g. the suggested tool order for a full
+      database overview (`packs/pg-dba`, `packs/mysql-dba`)
+* [x] Global usage notice appended to every tool description
+      (`TOOL_USAGE_NOTICE` in `blueprint/server.py`): the server is the only
+      supported way to interact with the database — never access it directly
+      or run ad-hoc SQL outside the tools
+* [x] Composed server-level `instructions` exposed via `FastMCP(...,
+      instructions=...)` for clients that surface them (OpenCode relies on
+      tool descriptions only)
+* [ ] Add `instructions` to `packs/sakila`
+* [ ] `get_replication_status` reports `replication_lag_seconds: 0` on a
+      standalone instance with no standby configured; return `null` (or
+      "no standby") instead of a misleading 0
+
+---
+
 # Observability
 
 * [x] Structured JSON logging on stderr (structlog), console format option
@@ -280,6 +302,16 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 * [x] All tools run with a non-DBA user (`pg_monitor`) on PostgreSQL
 * [x] All tools run with a plain read-only PostgreSQL user
 * [x] All tools run on MySQL 8 with a least-privilege monitoring user
+* [x] SQL conformance suite for every pack: 13 tools per pack, manifest
+      engine, read-only single-SELECT guard, engine placeholder style
+      (`tests/test_pack_sql_conformance.py`)
+* [x] Adapter unit suite: engine routing, aliases (`mssql`, `sql_server`,
+      `postgres`), DSN/kwargs, connection-string building, driver-missing
+      hints, fake-driver execution (`tests/test_db_adapters.py`)
+* [x] Live integration tests for Oracle, ClickHouse, SQL Server and MariaDB
+      that skip when the engine is unreachable
+      (`tests/test_pack_engine_integration.py`; needs
+      `docker compose -f docker-compose.databases.yaml up -d`)
 
 ---
 
@@ -292,19 +324,29 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 # Oracle DBA Pack
 
-* [ ] Initial implementation
+* [x] `packs/oracle-dba` (Oracle 12c+, 13 tools) with optional `[oracle]` extra
+      (oracledb thin mode)
 
 ---
 
 # ClickHouse DBA Pack
 
-* [ ] Initial implementation
+* [x] `packs/clickhouse-dba` (ClickHouse 23+, 13 tools) with optional
+      `[clickhouse]` extra (`clickhouse-driver`, native port 9000)
 
 ---
 
 # SQL Server DBA Pack
 
-* [ ] Initial implementation
+* [x] `packs/sqlserver-dba` (SQL Server 2016+, 13 tools) with optional
+      `[sqlserver]` extra (pyodbc)
+
+---
+
+# MariaDB DBA Pack
+
+* [x] `packs/mariadb-dba` (MariaDB 10.4+, 13 tools); `mariadb` engine is a
+      separate adapter subclassing the MySQL one (asyncmy)
 
 ---
 
@@ -350,9 +392,23 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 * [x] Dockerfile (multi-stage, uv builder, non-root runtime)
 * [x] Docker Compose example (`docker-compose.yaml`: PostgreSQL + `blueprint`
       server over Streamable HTTP with health checks)
+* [x] `docker-compose.databases.yaml` bringing up Oracle (1521), ClickHouse
+      (9000/8123), SQL Server (1433) and MariaDB (3307) with health checks
+      and first-boot least-privilege grants (`docker/init/`) for the
+      monitoring users
 * [x] Streamable HTTP example
 * [ ] Health endpoint (the compose stack uses a TCP healthcheck; a dedicated
       HTTP endpoint is still open)
+
+Demo database provisioning (`docker/init/init-db.sh`, first init only):
+
+* [x] Roles: `dba` (superuser), `app_owner` (owns the pgbench schema) and
+      `monitor` (`pg_monitor` membership) — the MCP server connects as
+      `monitor` (least privilege)
+* [x] `pgbench` initialized at scale 1 plus a short benchmark run, so the
+      monitoring views return meaningful data
+* [x] `pg_stat_statements` installed and preloaded
+      (`shared_preload_libraries` via the compose `command`)
 
 ---
 

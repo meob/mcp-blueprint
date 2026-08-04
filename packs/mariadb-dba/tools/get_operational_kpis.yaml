@@ -1,0 +1,5 @@
+name: get_operational_kpis
+description: 'Operational health KPIs with status: connection usage, active/idle sessions, waiting locks, long running queries and oldest transaction age. Returns one row per KPI (kpi_name, current_value, unit, suggested_threshold, status).'
+sql: ../sql/get_operational_kpis.sql
+cache:
+  ttl: 10

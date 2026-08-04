@@ -1,0 +1,14 @@
+name: oracle-dba
+version: 0.1.0
+engines: [oracle]
+description: >-
+  Oracle administration pack.  KPI dashboards (operational, performance,
+  security) and detail tools for users, storage, replication, statements and
+  maintenance.  Requires a monitoring user with SELECT_CATALOG_ROLE or SELECT
+  ANY DICTIONARY.
+instructions: >-
+  For a complete overview of the database run the tools in this order:
+  get_database_version, get_database_sizes, get_largest_objects,
+  get_operational_kpis, get_performance_kpis,
+  get_slow_queries, get_connections. Use the remaining detail tools only
+  for follow-ups.

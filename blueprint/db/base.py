@@ -55,4 +55,20 @@ def create_adapter(config: DatabaseConfig, metrics: Metrics | None = None) -> Da
         from blueprint.db.mysql import MySQLAdapter
 
         return MySQLAdapter(config, metrics=metrics)
+    if engine == "mariadb":
+        from blueprint.db.mariadb import MariaDBAdapter
+
+        return MariaDBAdapter(config, metrics=metrics)
+    if engine == "oracle":
+        from blueprint.db.oracle import OracleAdapter
+
+        return OracleAdapter(config, metrics=metrics)
+    if engine == "clickhouse":
+        from blueprint.db.clickhouse import ClickHouseAdapter
+
+        return ClickHouseAdapter(config, metrics=metrics)
+    if engine == "sqlserver":
+        from blueprint.db.sqlserver import SQLServerAdapter
+
+        return SQLServerAdapter(config, metrics=metrics)
     raise AdapterNotFoundError(f"no adapter for engine: {config.engine}")

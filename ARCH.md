@@ -220,11 +220,11 @@ Possible implementations:
 
 * PostgreSQL (implemented)
 * MySQL (implemented)
-* Oracle
-* MariaDB
-* SQLite
-* ClickHouse
-* SQL Server
+* Oracle (implemented)
+* MariaDB (implemented)
+* ClickHouse (implemented)
+* SQL Server (implemented)
+* SQLite (planned)
 
 Only SQL changes.
 
@@ -271,9 +271,12 @@ when a single pack genuinely shares a tool across engines:
 The reference packs keep the common case simple: each is single-engine, so its
 tools use a plain `sql` path and the pack-level `engines` decides availability.
 
-The reference packs are `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
-(MySQL 8+).  They expose the same 12 tool names and are developed independently:
-each is a complete, copyable example of a Blueprint customization.
+The reference packs are `packs/pg-dba` (PostgreSQL 14+), `packs/mysql-dba`
+(MySQL 8+), `packs/oracle-dba` (Oracle 12c+), `packs/clickhouse-dba`
+(ClickHouse 23+), `packs/sqlserver-dba` (SQL Server 2016+) and
+`packs/mariadb-dba` (MariaDB 10.4+).  They expose the same 13 tool names and
+are developed independently: each is a complete, copyable example of a
+Blueprint customization.
 
 ---
 

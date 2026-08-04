@@ -7,9 +7,22 @@ canonical name.
 
 from __future__ import annotations
 
-SUPPORTED_ENGINES: frozenset[str] = frozenset({"postgresql", "mysql", "oracle"})
+SUPPORTED_ENGINES: frozenset[str] = frozenset(
+    {
+        "postgresql",
+        "mysql",
+        "oracle",
+        "clickhouse",
+        "sqlserver",
+        "mariadb",
+    }
+)
 
-ENGINE_ALIASES: dict[str, str] = {"postgres": "postgresql"}
+ENGINE_ALIASES: dict[str, str] = {
+    "postgres": "postgresql",
+    "mssql": "sqlserver",
+    "sql_server": "sqlserver",
+}
 
 
 def canonical_engine(engine: str) -> str:

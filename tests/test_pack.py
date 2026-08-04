@@ -27,7 +27,7 @@ def test_missing_manifest_is_engine_agnostic(tmp_path) -> None:
 
 
 def test_invalid_engine_in_manifest_raises(tmp_path) -> None:
-    (tmp_path / "pack.yaml").write_text("engines: [sqlserver]\n", encoding="utf-8")
+    (tmp_path / "pack.yaml").write_text("engines: [db2]\n", encoding="utf-8")
     with pytest.raises(ConfigurationError):
         load_pack_metadata(tmp_path)
 

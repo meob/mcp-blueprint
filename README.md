@@ -284,12 +284,22 @@ first to see how a domain pack is built.
 # Reference packs
 
 The reference implementations are independent administration packs with
-the **same 13 tools**: `packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba`
-(MySQL 8+).  Each is self-contained and can evolve independently with engine-specific
-tools.
+the **same 13 tools**: `packs/pg-dba` (PostgreSQL 14+), `packs/mysql-dba`
+(MySQL 8+), `packs/oracle-dba` (Oracle 12c+), `packs/clickhouse-dba`
+(ClickHouse 23+), `packs/sqlserver-dba` (SQL Server 2016+) and
+`packs/mariadb-dba` (MariaDB 10.4+).  Each is self-contained and can evolve
+independently with engine-specific tools.
 
 With `database.engine: postgresql` the `pg-dba` and `sakila` packs load; with
-`database.engine: mysql` only `mysql-dba` loads.
+`database.engine: mysql` only `mysql-dba` loads; with
+`oracle`, `clickhouse`, `sqlserver` or `mariadb` the matching `*-dba` pack
+loads.  The engine aliases `postgres`, `mssql` and `sql_server` are also
+accepted.
+
+The four additional engines are optional: install their drivers through the
+extras `uv sync --extra oracle`, `--extra clickhouse`, `--extra sqlserver`
+(or `--all-extras`) and bring a database up with
+`docker compose -f docker-compose.databases.yaml up -d`.
 
 Each pack contains ready-to-use tools for database administration, split into
 KPI dashboards and detail tools.

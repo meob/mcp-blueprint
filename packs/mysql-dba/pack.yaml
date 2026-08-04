@@ -8,6 +8,6 @@ description: >-
 instructions: >-
   For a complete overview of the database run the tools in this order:
   get_database_version, get_database_sizes, get_largest_objects,
-  get_operational_kpis, get_performance_kpis, get_security_kpis,
+  get_operational_kpis, get_performance_kpis,
   get_slow_queries, get_connections. Use the remaining detail tools only
   for follow-ups.
