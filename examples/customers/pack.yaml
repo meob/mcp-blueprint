@@ -1,0 +1,13 @@
+name: customers
+version: 1.0.0
+engines: [postgresql]
+description: >-
+  Customer management pack for a small CRM database.  Tools to find and
+  inspect customers, list their orders and assess order health.  Requires a
+  PostgreSQL database with the customers and orders tables (see schema.sql).
+instructions: >-
+  When a customer asks about their account, first call search_customers to
+  find the customer identifier, then get_customer and get_customer_orders
+  for the details.  Confirm the customer exists before reporting order data:
+  if the search returns no match, say so instead of inventing an account.
+  Use get_orders_kpis for an overview of order health across all customers.

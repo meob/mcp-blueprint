@@ -1,0 +1,9 @@
+name: get_orders_kpis
+description: >-
+  Order health KPIs with status across all customers: pending orders,
+  overdue shipments, cancelled rate, open order value and average order
+  value.  Returns one row per KPI (kpi_name, current_value, unit,
+  suggested_threshold, status).
+sql: ../sql/get_orders_kpis.sql
+cache:
+  ttl: 10

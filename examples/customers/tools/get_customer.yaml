@@ -1,0 +1,14 @@
+name: get_customer
+description: >-
+  Return the full record for a single customer: contact details plus an
+  order summary with number of orders, total spent, average order value and
+  last order date.  Returns one row, or none when the customer does not
+  exist.  Use search_customers first to find the identifier.
+parameters:
+  customer_id:
+    type: integer
+    required: true
+    description: Unique customer identifier.
+sql: ../sql/get_customer.sql
+cache:
+  ttl: 30

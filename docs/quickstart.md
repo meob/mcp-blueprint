@@ -212,3 +212,10 @@ KPI tools return rows with a `status` of `ok`/`warning`/`error`, so the LLM can
 answer with a diagnosis instead of a raw table dump.
 
 The LLM chooses the tool; the tool hides the SQL.
+
+## Next steps
+
+To build your own server for your own application or database, follow
+[docs/tutorial.md](tutorial.md).  The authoring checklist lives in
+[docs/best_practices.md](best_practices.md) and quick answers in
+[docs/faq.md](faq.md).

@@ -1,0 +1,19 @@
+name: search_customers
+description: >-
+  Find customers by optional name and city filters.  Returns the customer
+  identifier, full name, email, city, total orders and total spent, ordered
+  by name.  Omit both filters to list all customers in alphabetical order.
+parameters:
+  name:
+    type: string
+    required: false
+    default: null
+    description: Case-insensitive substring matched against the full name.
+  city:
+    type: string
+    required: false
+    default: null
+    description: Case-insensitive substring matched against the city.
+sql: ../sql/search_customers.sql
+cache:
+  ttl: 30

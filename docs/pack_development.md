@@ -3,6 +3,11 @@
 A **pack** is a reusable collection of domain-oriented tools.  It contains only
 configuration, SQL and metadata — no Python code.
 
+For a step-by-step walkthrough of building your own server, see
+[docs/tutorial.md](tutorial.md); for the authoring checklist see
+[docs/best_practices.md](best_practices.md), and for quick answers
+[docs/faq.md](faq.md).
+
 ## Pack layout
 
 ```

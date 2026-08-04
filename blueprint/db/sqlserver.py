@@ -142,7 +142,7 @@ class SQLServerAdapter(DatabaseAdapter):
         except Exception as exc:  # noqa: BLE001 - message is the point
             raise DatabaseError(f"query failed: {exc}") from exc
         finally:
-            if connection is not None:
+            if connection is not None and self._queue is not None:
                 self._queue.put_nowait(connection)
             if self._metrics is not None:
                 self._metrics.record_db_query(

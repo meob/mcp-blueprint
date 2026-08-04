@@ -55,3 +55,12 @@ cache:
 
 See [`docs/pack_development.md`](../docs/pack_development.md) for the full
 guide.
+
+## Further reading
+
+* [`docs/tutorial.md`](../docs/tutorial.md) — step-by-step build of your own
+  MCP server, with a complete worked example in
+  [`examples/customers`](../examples/customers).
+* [`docs/best_practices.md`](../docs/best_practices.md) — authoring checklist
+  (naming, descriptions, `instructions`, KPI convention).
+* [`docs/faq.md`](../docs/faq.md) — quick answers to common questions.

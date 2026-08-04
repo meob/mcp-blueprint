@@ -1,0 +1,19 @@
+name: get_customer_orders
+description: >-
+  List the orders of a single customer, most recent first, with status,
+  total amount, estimated delivery and whether the shipment is overdue.
+  Pass a status to restrict the result, for example to review pending or
+  shipped orders.  Returns no rows when the customer has no matching orders.
+parameters:
+  customer_id:
+    type: integer
+    required: true
+    description: Unique customer identifier.
+  status:
+    type: string
+    required: false
+    default: null
+    description: Order status to filter by, one of pending, shipped, delivered or cancelled.
+sql: ../sql/get_customer_orders.sql
+cache:
+  ttl: 30

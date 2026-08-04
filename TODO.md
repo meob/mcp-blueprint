@@ -361,6 +361,9 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 * [x] Installation guide
 * [x] Quick start
 * [x] Pack development guide
+* [x] Custom server tutorial (`docs/tutorial.md`)
+* [x] Best practices guide (`docs/best_practices.md`)
+* [x] FAQ (`docs/faq.md`)
 * [ ] Adapter development guide
 * [ ] Contribution guide
 
@@ -370,7 +373,7 @@ Always return rows with `status` of `ok`/`warning`/`error`.
 
 * [x] PostgreSQL example
 * [ ] Oracle example
-* [ ] Customer Pack example
+* [x] Customer Pack example (`examples/customers`)
 * [ ] ERP Pack example
 
 ---
