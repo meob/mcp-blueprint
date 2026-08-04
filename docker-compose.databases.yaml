@@ -50,6 +50,27 @@ services:
       retries: 15
       start_period: 60s
 
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root_pw
+      MYSQL_DATABASE: mysakila
+      MYSQL_USER: monitor
+      MYSQL_PASSWORD: monitor_pw
+    ports:
+      # host 3306 is reserved for the local mysakila instance (mysql-dba),
+      # so the containerized MySQL uses 3308.
+      - "3308:3306"
+    volumes:
+      - ./docker/init/mysql-grants.sql:/docker-entrypoint-initdb.d/01-grants.sql:ro
+      - ./docker/init/sakila/sakila-schema.sql:/docker-entrypoint-initdb.d/02-sakila-schema.sql:ro
+      - ./docker/init/sakila/sakila-data.sql:/docker-entrypoint-initdb.d/03-sakila-data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -umonitor -pmonitor_pw --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
   mariadb:
     image: mariadb:11.4
     environment:

@@ -298,7 +298,8 @@ accepted.
 
 The four additional engines are optional: install their drivers through the
 extras `uv sync --extra oracle`, `--extra clickhouse`, `--extra sqlserver`
-(or `--all-extras`) and bring a database up with
+(or `--extra databases` for all three, or `--all-extras`); MariaDB reuses the
+MySQL `asyncmy` driver, so it needs no extra.  Bring the databases up with
 `docker compose -f docker-compose.databases.yaml up -d`.
 
 Each pack contains ready-to-use tools for database administration, split into

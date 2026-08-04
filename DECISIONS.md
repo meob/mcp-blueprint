@@ -1,405 +1,143 @@
 # DECISIONS
 
-This document records the architectural decisions made during the design of **MCP Blueprint**.
-
-Its purpose is to explain **why** specific decisions were made, reducing the risk of revisiting the same discussions or unintentionally introducing architectural regressions.
-
----
-
-# Decision 1
-
-## MCP servers expose domains, not databases
-
-### Decision
-
-MCP Blueprint exposes domain-oriented tools rather than generic SQL execution.
-
-Examples:
-
-* get_customer()
-* get_connections()
-* get_database_size()
-
-instead of:
-
-* execute_sql()
-* run_query()
-
-### Rationale
-
-LLMs should decide **what information is needed**, not **how to retrieve it**.
-
-Encapsulating SQL provides:
-
-* better security
-* better performance
-* stable interfaces
-* easier maintenance
-* simpler prompts
+Architectural decisions behind **MCP Blueprint**.  Each decision records *why*
+a specific choice was made, to avoid revisiting settled discussions or
+introducing regressions.  The complete historical record is archived in
+`staff/DECISIONS_old.md`.
 
 ---
 
-# Decision 2
+# D1 — MCP servers expose domains, not databases
 
-## SQL remains external
+MCP Blueprint exposes domain-oriented tools (`get_customer()`,
+`get_connections()`, `get_database_size()`) instead of generic SQL execution
+(`execute_sql()`, `run_query()`).
 
-### Decision
-
-SQL is always stored in dedicated files.
-
-Python code never embeds SQL statements.
-
-### Rationale
-
-This allows:
-
-* easier maintenance
-* DBA-friendly editing
-* database-specific optimization
-* version-specific SQL
-* cleaner Python code
+LLMs should decide **what** information is needed, not **how** to retrieve it.
+Encapsulating SQL gives better security, stable interfaces and simpler prompts.
 
 ---
 
-# Decision 3
+# D2 — SQL remains external
 
-## YAML is the primary configuration format
-
-### Decision
-
-Tool definitions and configuration are written in YAML.
-
-### Rationale
-
-YAML is:
-
-* readable
-* concise
-* easy to edit
-* widely adopted
-
-The goal is to make adding new tools possible without writing Python code.
+SQL always lives in dedicated files; Python never embeds statements.  This
+keeps queries DBA-friendly, engine-specific and version-specific without
+touching framework code.
 
 ---
 
-# Decision 4
+# D3 — Configuration-driven development
 
-## Python is the implementation language
-
-### Decision
-
-Python is the reference implementation language.
-
-### Rationale
-
-Reasons include:
-
-* mature MCP ecosystem
-* FastMCP support
-* excellent async support
-* broad database driver availability
-* strong AI tooling support
+Tools and servers are described in YAML.  The goal: adding a tool requires one
+YAML definition and one SQL file, with no framework changes.  Python is the
+reference implementation language (mature MCP ecosystem, async, broad driver
+support).
 
 ---
 
-# Decision 5
+# D4 — FastMCP is the reference MCP implementation
 
-## FastMCP is the reference MCP implementation
-
-### Decision
-
-FastMCP is used as the underlying MCP framework.
-
-### Rationale
-
-FastMCP provides a clean and productive API while remaining an implementation detail hidden by the framework.
-
-Packs should remain independent from the underlying MCP library.
+FastMCP provides the underlying transport and tool layer but stays an
+implementation detail hidden by the framework: packs never depend on it.
 
 ---
 
-# Decision 6
+# D5 — Both transports are first-class
 
-## Support both stdio and Streamable HTTP
-
-### Decision
-
-Both transports are first-class citizens.
-
-### Rationale
-
-stdio is ideal for:
-
-* local development
-* desktop clients
-* coding assistants
-
-Streamable HTTP is better suited for:
-
-* production
-* containers
-* Kubernetes
-* authentication
-* reverse proxies
-
-Changing transport should never require changing packs.
+stdio suits local development, desktop clients and coding assistants;
+Streamable HTTP suits production, containers and reverse proxies.  Changing
+transport never changes packs.
 
 ---
 
-# Decision 7
+# D6 — Database code is isolated behind adapters
 
-## Async-first architecture
-
-### Decision
-
-The framework is designed around Python asyncio.
-
-### Rationale
-
-Benefits include:
-
-* improved scalability
-* efficient connection pooling
-* concurrent execution
-* future workflow support
+Each DBMS gets a `DatabaseAdapter` behind a common interface (PostgreSQL,
+MySQL, Oracle, ClickHouse, SQL Server, MariaDB).  The framework is
+DBMS-independent; only adapters and SQL change per engine.
 
 ---
 
-# Decision 8
+# D7 — One semantic interface across databases
 
-## Database abstraction
-
-### Decision
-
-Database-specific code is isolated behind adapters.
-
-### Rationale
-
-The framework should remain independent from the underlying DBMS.
-
-Only adapters and SQL should change.
+Equivalent concepts expose identical tool names across engines (the six `*-dba`
+packs share the same 13 tools).  LLMs work across databases without changing
+prompts, even though the underlying catalogs differ.
 
 ---
 
-# Decision 9
+# D8 — Packs contain domain knowledge
 
-## One semantic interface across databases
-
-### Decision
-
-Equivalent concepts should expose identical tool names across supported relational databases.
-
-Example:
-
-* PostgreSQL
-* MySQL
-* Oracle
-* ClickHouse
-
-
-all expose:
-
-* get_connections()
-* get_blocking_sessions()
-* get_database_size()
-
-### Rationale
-
-Different DBMS implementations expose different catalogs but represent the same operational concepts.
-
-Using a common semantic interface allows LLMs to work across multiple database engines without changing prompts.
+A pack holds tool definitions, SQL and metadata; the framework owns
+infrastructure.  Packs stay lightweight, reusable and independent of the MCP
+library.
 
 ---
 
-# Decision 10
+# D9 — Packs are engine-aware
 
-## Packs contain domain knowledge
-
-### Decision
-
-A pack contains:
-
-* tool definitions
-* SQL
-* configuration
-* optional formatting
-
-The framework contains infrastructure.
-
-### Rationale
-
-This separation keeps packs lightweight and reusable.
+The engine is declared once in `pack.yaml` (`engines: [postgresql]`); packs
+that do not match `database.engine` are skipped, so the configured engine
+selects both the adapter and the loaded packs.  A tool may override per-engine
+via a `sql` map or a shared `sql` path with an `engines` list.  This keeps
+loading deterministic and prevents dialect errors by construction.
 
 ---
 
-# Decision 11
+# D10 — KPI-based reference packs
 
-## Lightweight cache
+The DBA packs expose three KPI dashboards (operational, performance, security)
+that always return rows with a `status` of `ok`/`warning`/`error`, plus the
+same detail tools.  Computed status rows give the agent an immediate diagnosis
+and reduce round-trips.  Packs are independent and single-engine so they can
+evolve separately and act as complete, copyable examples.
 
-### Decision
-
-The framework uses an in-memory cache.
-
-Redis is not required.
-
-### Rationale
-
-Most MCP deployments do not require distributed caching.
-
-A lightweight cache is simpler to configure and sufficient for the expected workloads.
+PostgreSQL 12/13 are not supported: several `pg_stat_statements` columns were
+renamed in 14, and a single static statement cannot fork per version.
 
 ---
 
-# Decision 12
+# D11 — Security model
 
-## Configuration-driven development
-
-### Decision
-
-The preferred way to extend the framework is through configuration rather than Python code.
-
-### Rationale
-
-The long-term objective is that adding a new tool requires little more than:
-
-* one YAML definition
-* one SQL file
-
-without modifying the framework itself.
+- Read-only by default: a SQL guard accepts exactly one `SELECT` (or
+  `WITH`/`WITH RECURSIVE` ending in `SELECT`), enforced at load time and
+  re-checked at runtime on the rendered statement; fail-closed.
+- Writes require an explicit opt-in (`writes: true` in the tool YAML).
+- Injection hardened: `{{ }}` interpolation rejected, values bound as
+  placeholders only.
+- Result rows capped by `server.max_rows` (default `1000`).
+- All tools work with least-privilege monitoring users.
 
 ---
 
-# Decision 13
+# D12 — Lightweight cache
 
-## Reference implementation
-
-### Decision
-
-The first packs are the reference DBA packs: `packs/pg-dba` (PostgreSQL) and
-`packs/mysql-dba` (MySQL).
-
-### Rationale
-
-It demonstrates all major framework capabilities while providing immediate practical value.
-
-The same architectural model can later be applied to Oracle, MySQL and business-oriented domains.
+An in-memory cache (cachetools) with per-tool TTL.  Redis is not required: most
+MCP deployments do not need distributed caching.
 
 ---
 
-# Decision 14
+# D13 — Optional extra engines
 
-## Packs are engine-aware
-
-### Decision
-
-The engine is declared once at pack level in `pack.yaml` (e.g.
-`engines: [postgresql]`); packs that do not match the configured engine are
-skipped at load time.  When `engines` is absent the pack is engine-agnostic.
-A tool may still override per-tool, via a `sql` map keyed by engine or a shared
-`sql` path with an `engines` list, for packs that genuinely share a tool across
-engines.
-
-### Rationale
-
-Declaring the engine once per pack keeps the common case (one pack, one
-engine) simple, while the tool-level override remains available for future
-multi-engine packs.  The configured engine (`database.engine`) selects both
-the adapter and the packs that contribute tools, so loading is deterministic
-and dialect errors are prevented by construction.  The agent still sees a
-stable tool interface regardless of the underlying database.
-
----
-
-# Decision 15
-
-## Template and pack are distinct objects
-
-### Decision
-
-`template/pack` is a minimal skeleton (pack metadata, one example tool, one
-example SQL file) and is **not** auto-loaded by the framework.  Concrete packs
-live in `packs/` (e.g. `packs/pg-dba`).
-
-### Rationale
-
-A new domain pack (e.g. a "Sakila" pack) can be created by copying the template
-or an existing pack and touching only names, descriptions and SQL queries.
-Keeping the template free of domain content makes it stable and reusable.
-
----
-
-# Decision 16
-
-## KPI-based reference packs
-
-### Decision
-
-`packs/pg-dba` and `packs/mysql-dba` expose the same three KPI dashboards
-(operational, performance, security) that always return rows with a `status`
-of `ok`/`warning`/`error`, plus the same detail tools (users, largest objects,
-slow queries, index health).  They are two independent, single-engine packs:
-PostgreSQL 14+ and MySQL 8+.
-
-### Rationale
-
-KPI rows with a computed `status` give the agent an immediate diagnosis and
-reduce round-trips.  The reference packs are deliberately separate and
-single-engine so they can evolve independently (PostgreSQL-only and
-MySQL-only tools) and act as complete, copyable examples of a Blueprint
-customization.  Both are validated with least-privilege monitoring users,
-proving the engine-aware loading: the same 12 tool names are exposed on both
-engines by two distinct packs.
-
-PostgreSQL 12 and 13 reached end-of-life and several relevant columns (e.g.
-`total_exec_time` in `pg_stat_statements`) were renamed in PostgreSQL 14;
-older versions would require version-forked SQL that a single static statement
-cannot express.
-
----
-
-# Decision 17
-
-## Four additional optional DBA engines
-
-### Decision
-
-`packs/oracle-dba`, `packs/clickhouse-dba`, `packs/sqlserver-dba` and
-`packs/mariadb-dba` expose the same 13 tools as the PostgreSQL/MySQL
-reference packs.  The drivers are optional extras (`[oracle]` = oracledb thin,
-`[clickhouse]` = clickhouse-driver, `[sqlserver]` = pyodbc; `mariadb` reuses
-the MySQL adapter on asyncmy).  The engine aliases `mssql`, `sql_server` and
-`postgres` are accepted in `database.engine`.
-
-### Rationale
-
-Each engine is a separate single-engine pack, matching the existing reference
-design; the four databases are only needed to develop and validate those
-packs, so their drivers ship as extras and a dedicated
-`docker-compose.databases.yaml` stack provisions them (Oracle Free on 1521,
-ClickHouse on 9000/8123, SQL Server on 1433, MariaDB on 3307) with
-least-privilege monitoring users.
+Oracle, ClickHouse, SQL Server and MariaDB ship as separate single-engine packs
+with optional driver extras (`[oracle]`, `[clickhouse]`, `[sqlserver]`;
+MariaDB reuses the MySQL adapter on asyncmy).  A `docker-compose.databases.yaml`
+stack provisions all containerized databases with least-privilege monitoring
+users for development and validation.
 
 Two driver realities shaped the implementation:
 
-* **clickhouse-driver removed its asyncio client** (`clickhouse_driver.aio`)
-  after 0.2.6, so the adapter wraps the synchronous `Client` in
-  `asyncio.to_thread`; it still supports the `%(name)s` placeholder style
-  used by the SQL guard.  The server-side `{name:Type}` substitution is not
-  used because clickhouse-driver does not pass native query parameters.
-* **Reserved words cannot be column aliases**: `user` and `size` break
-  Oracle parsing, `user` and `schema` break SQL Server, so aliases are quoted
-  (`AS "size"`, `AS [user]`) to keep the same output column names across
-  packs.
-
-The MariaDB container is preloaded with the official Sakila sample data so
-the monitoring tools return meaningful rows out of the box; the Oracle init
-script must `ALTER SESSION SET CONTAINER = FREEPDB1` because the app user
-lives in the pluggable database, not the CDB root.
+- **clickhouse-driver removed its asyncio client** after 0.2.6, so the adapter
+  wraps the synchronous `Client` in `asyncio.to_thread`.
+- **Reserved words cannot be column aliases**: `user` and `size` break Oracle
+  parsing, `user` and `schema` break SQL Server, so aliases are quoted
+  (`AS "size"`, `AS [user]`) to keep identical output column names.
 
 ---
 
-# Guiding Principle
+# Guiding principle
 
-Every architectural decision should support the same long-term objective:
+Every decision serves the same objective:
 
-> Allow developers to describe **what** a tool does, while the framework manages **how** it is exposed, executed and maintained.
+> Allow developers to describe **what** a tool does, while the framework
+> manages **how** it is exposed, executed and maintained.

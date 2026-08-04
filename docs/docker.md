@@ -33,9 +33,10 @@ PostgreSQL volume.
 
 ## Extra database engines
 
-The `docker-compose.databases.yaml` file brings up one container for each of
-the four optional engines, used by the `oracle-dba`, `clickhouse-dba`,
-`sqlserver-dba` and `mariadb-dba` packs:
+The `docker-compose.databases.yaml` file brings up the containerized MySQL
+(used by the `mysql-dba` pack) plus one container for each of the four optional
+engines, used by the `oracle-dba`, `clickhouse-dba`, `sqlserver-dba` and
+`mariadb-dba` packs:
 
 ```bash
 docker compose -f docker-compose.databases.yaml up -d
@@ -43,6 +44,7 @@ docker compose -f docker-compose.databases.yaml up -d
 
 | Service     | Image                        | Host port     | Monitoring login            |
 | ----------- | ---------------------------- | ------------- | --------------------------- |
+| `mysql`     | `mysql:8`                    | `3308`        | `monitor` / `monitor_pw`    |
 | `oracle`    | `gvenzl/oracle-free:23-slim` | `1521`        | `monitor` / `monitor_pw` (PDB `FREEPDB1`) |
 | `clickhouse`| `clickhouse/clickhouse-server:24.8` | `9000` (native), `8123` (HTTP) | `monitor` / `monitor_pw` |
 | `sqlserver` | `mcr.microsoft.com/mssql/server:2022-latest` | `1433` | `sa` / `YourStrong!Passw0rd` |
@@ -50,19 +52,21 @@ docker compose -f docker-compose.databases.yaml up -d
 
 First startup of the Oracle container initializes a database and can take
 several minutes.  The least-privilege grants for the monitoring users are
-applied once on first boot by the scripts under `docker/init/` (Oracle
-`SELECT ANY DICTIONARY`, MariaDB `PROCESS`/`REPLICATION CLIENT`/`SELECT`);
-SQL Server is reached as `sa`, which already holds the required permissions.
-The MariaDB container also loads the official [Sakila sample database]
-(https://dev.mysql.com/doc/sakila/en/) into its `mysakila` database on first
-boot (`docker/init/sakila/`), so the DBA tools return meaningful data; the
-Oracle init script switches to the `FREEPDB1` pluggable database before
-granting, since the `monitor` user lives there.
+applied once on first boot by the scripts under `docker/init/` (MySQL and
+MariaDB `PROCESS`/`REPLICATION CLIENT`/`SELECT`, Oracle
+`SELECT ANY DICTIONARY`); SQL Server is reached as `sa`, which already holds
+the required permissions.  The MySQL and MariaDB containers also load the
+official [Sakila sample database](https://dev.mysql.com/doc/sakila/en/) into
+their `mysakila` database on first boot (`docker/init/sakila/`), so the DBA
+tools return meaningful data; the Oracle init script switches to the
+`FREEPDB1` pluggable database before granting, since the `monitor` user lives
+there.
 
 The integration tests under `tests/test_pack_engine_integration.py` connect to
 these defaults and skip when the engine is unreachable.  Host port `3306` is
-left unused here because it is reserved for the local `mysakila` instance used
-by `mysql-dba`.
+left unused by the compose stack because it is reserved for the local
+`mysakila` instance used by `mysql-dba`; the containerized MySQL listens on
+`3308` instead.
 
 ## Building the image manually
 

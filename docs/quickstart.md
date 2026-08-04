@@ -30,7 +30,8 @@ uv run blueprint list-tools --config config
 ```
 
 The four extra engines are optional.  Install their drivers through the extras
-and bring a database up with the provided compose stack:
+and bring a database up with the provided compose stack (which also starts a
+containerized MySQL 8 on `3308` for the `mysql-dba` pack):
 
 ```bash
 uv sync --extra oracle --extra clickhouse --extra sqlserver   # or --all-extras
@@ -39,6 +40,7 @@ docker compose -f docker-compose.databases.yaml up -d
 
 | Engine       | Example DSN                                                          |
 | ------------ | -------------------------------------------------------------------- |
+| `mysql`      | `mysql://monitor:monitor_pw@localhost:3308/mysakila`                 |
 | `oracle`     | `oracle://monitor:monitor_pw@localhost:1521/FREEPDB1`                |
 | `clickhouse` | `clickhouse://monitor:monitor_pw@localhost:9000/default`             |
 | `sqlserver`  | `sqlserver://sa:YourStrong!Passw0rd@localhost:1433/master`           |

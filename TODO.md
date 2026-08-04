@@ -1,476 +1,168 @@
 # TODO
 
-This document contains the implementation backlog for **MCP Blueprint**.
+Implementation backlog for **MCP Blueprint**.  The project is near maturity: the
+core framework, all six reference DBA packs and the Sakila example are done.
+This document summarizes what is in place and tracks only the remaining work.
 
-Tasks are intentionally small and independent so they can be implemented by AI coding assistants with minimal context switching.
-
-Checkboxes track the current MVP status.
-
----
-
-# MVP
-
-## Project bootstrap
-
-* [x] Create Python project structure
-* [x] Configure pyproject.toml
-* [x] Configure Ruff
-* [x] Configure Black
-* [x] Configure pytest
-* [x] Configure mypy
-* [x] Configure pre-commit hooks
+The detailed history is archived in `staff/TODO_old.md`.
 
 ---
+
+# Done
 
 ## Core framework
 
-* [x] Create Blueprint application class
-* [x] Implement configuration loader
-* [x] Implement YAML parser
-* [x] Implement SQL loader
-* [x] Implement Jinja2 rendering
-* [x] Implement parameter validation
-* [x] Implement error handling
-* [x] Implement structured logging
+- Configuration-driven server: YAML config (`server`, `database`, `logging`,
+  `metrics`, `pack`), environment expansion, Jinja2 templates, parameter
+  validation, structured logging, error handling.
+- FastMCP integration: automatic tool registration, parameter conversion,
+  docstring generation, JSON responses.
+- Transports: stdio and Streamable HTTP (configurable per server).
+- Async-first architecture with connection pooling.
+
+## Database adapters
+
+- Six engines behind one `DatabaseAdapter` interface: PostgreSQL (psycopg3),
+  MySQL (asyncmy), Oracle (oracledb thin), ClickHouse (clickhouse-driver),
+  SQL Server (pyodbc) and MariaDB (subclass of the MySQL adapter).
+- Engine-aware pack loading: engine declared in `pack.yaml`, optional
+  per-tool `sql` map for multi-engine tools; aliases `postgres`, `mssql`,
+  `sql_server` accepted.
+
+## Packs
+
+- Reference DBA packs exposing the same 13 tools each: `pg-dba`,
+  `mysql-dba`, `oracle-dba`, `clickhouse-dba`, `sqlserver-dba`,
+  `mariadb-dba`.  KPI dashboards (operational/performance/security, status
+  `ok`/`warning`/`error`) plus detail tools (users, connections, sizes,
+  version, largest objects, replication, tuning, slow queries, maintenance,
+  index health).
+- `packs/sakila`: first domain-oriented example (film search, film details,
+  customer rentals) on PostgreSQL.
+- `template/pack`: minimal skeleton, not auto-loaded.
+
+## Security
+
+- Read-only by default: SQL guard accepts exactly one `SELECT` (or
+  `WITH`/`WITH RECURSIVE` ending in `SELECT`), checked at load time and at
+  runtime; fail-closed.
+- Writes require explicit `writes: true` in the tool YAML.
+- Injection hardening: `{{ }}` interpolation rejected, values only as bound
+  placeholders.
+- Result row cap `server.max_rows` (default `1000`).
+
+## Agent guidance
+
+- Pack-level `instructions` appended to every tool description; global usage
+  notice; server-level `instructions` for clients that surface them.
+- Standalone `get_replication_status` reports `NULL` lag instead of a
+  misleading `0`.
+
+## Observability
+
+- Structured JSON logging, rotating file handler, per-call `trace_id`,
+  sensitive-data redaction, optional audit channel.
+- Optional Prometheus metrics endpoint (disabled by default, works with
+  stdio).
+
+## Tooling and tests
+
+- Unit suites plus live integration tests (skipped when an engine is
+  unreachable); SQL conformance suite (13 tools/pack, guard, placeholders).
+- Least-privilege monitoring users validated on PostgreSQL and MySQL.
+
+## Docker
+
+- Multi-stage `Dockerfile`; `docker-compose.yaml` (PostgreSQL + Blueprint over
+  Streamable HTTP); `docker-compose.databases.yaml` provisioning the
+  containerized databases — MySQL 8 (`3308`), Oracle Free 23 (`1521`),
+  ClickHouse 24.8 (`9000`/`8123`), SQL Server 2022 (`1433`) and MariaDB 11.4
+  (`3307`) — with first-boot least-privilege grants (`docker/init/`) and
+  Sakila data for MySQL/MariaDB.
 
 ---
 
-## FastMCP integration
-
-* [x] Initialize FastMCP server
-* [x] Automatic tool registration
-* [x] Parameter conversion
-* [x] Tool documentation generation
-* [x] Error propagation
-* [x] JSON response formatting
-
----
+# Open
 
 ## Transport
 
-### stdio
+- [ ] Test stdio with Claude Desktop.
+- [ ] Test stdio with Gemini CLI.
+- [ ] Dedicated HTTP health endpoint (the compose stack uses a TCP healthcheck
+      for now).
 
-* [x] Implement stdio transport
-* [ ] Test with Claude Desktop
-* [x] Test with OpenCode
-* [ ] Test with Gemini CLI
+## Database layer
 
-### Streamable HTTP
+- [ ] Transaction management in the generic adapter.
 
-* [x] Implement Streamable HTTP transport
-* [x] Configuration options
-* [ ] Health endpoint (see the Docker section; the compose stack uses a TCP
-      healthcheck for now)
-* [x] Docker example
+## Formatting
 
----
+- [ ] Duration formatting.
+- [ ] Computed columns.
+- [ ] Human-readable value formatting (e.g. `1000000` -> `1M`) applied
+      consistently across engines (PostgreSQL and MySQL return different
+      `size` formats).
 
-# Database Layer
+## Cache
 
-## Generic adapter
+- [ ] aiocache backend.
+- [ ] Cache invalidation.
 
-* [x] Define DatabaseAdapter interface
-* [x] Connection abstraction
-* [x] Query execution
-* [ ] Transaction management
-* [x] Connection pooling
-* [x] Engine-aware pack loading (pack-level `engines`; per-tool `sql` map
-      override)
+## Security
 
----
+- [ ] Authentication hooks (future).
 
-## PostgreSQL adapter
+## Observability
 
-* [x] psycopg3 implementation
-* [x] Async support
-* [x] Connection pool
-* [x] Connection testing
+- [ ] OpenTelemetry exporter as an optional extra.
 
----
+## Documentation
 
-## Oracle adapter
+- [ ] Adapter development guide.
+- [ ] Contribution guide.
 
-* [ ] Oracle implementation
+## Examples
 
----
+- [ ] Oracle example.
+- [ ] ERP Pack example.
 
-## ClickHouse adapter
+## Testing
 
-* [ ] ClickHouse implementation
+- [ ] CI for PostgreSQL, Oracle, SQL Server and MySQL.
 
 ---
 
-## MySQL adapter
+# Future features
 
-* [x] asyncmy implementation
-* [x] Async support
-* [x] Connection pool
-* [x] Connection testing
-* [x] DSN and parts-based configuration
+## Workflow tools
 
----
+Higher-level tools orchestrating atomic tools:
 
-# Tool System
+- [ ] `diagnose_performance()`, `diagnose_storage()`, `diagnose_autovacuum()`,
+      `diagnose_replication()`.
 
-* [x] YAML tool loader
-* [x] Automatic validation
-* [x] Parameter parsing
-* [x] SQL execution
-* [x] Result serialization
+## AI-assisted features
 
----
+- [ ] Tool self-documentation.
+- [ ] Automatic OpenAPI-like documentation.
+- [ ] Tool usage statistics.
 
-# SQL Templates
+## Nice to have
 
-* [x] Jinja2 integration
-* [x] Conditional SQL
-* [x] Optional parameters
-* [x] SQL syntax validation
-* [x] Result size bounded by the framework (`server.max_rows`, default `1000`)
-* [ ] Every tool SQL enforces an `ORDER BY` (most significant rows first)
-      (`get_largest_objects` already complies; audit the rest)
+- [ ] Plugin system.
+- [ ] Pack installer / pack repository.
+- [ ] Web administration UI.
+- [ ] Visual pack editor (author YAML + SQL and monitor at runtime).
+- [ ] NoSQL adapters.
+- [ ] Per-server environment label (`server.label`) embedded in tool
+      descriptions so agents can tell which database a server targets.
 
 ---
 
-# Formatting
-
-* [x] Column rename support
-* [x] Unit conversion
-* [x] Timestamp formatting
-* [ ] Duration formatting
-* [ ] Computed columns
-* [x] Hidden columns
-* [ ] Human-readable value formatting (e.g. `1000000` -> `1M`) applied
-      consistently across engines (PostgreSQL and MySQL currently return
-      different `size` formats)
-
----
-
-# Cache
-
-* [x] Cache abstraction
-* [x] cachetools backend
-* [ ] aiocache backend
-* [x] Per-tool TTL
-* [ ] Cache invalidation
-
----
-
-# Security
-
-* [x] Tool enable/disable
-* [x] Role metadata
-* [x] Confirmation flag
-* [ ] Future authentication hooks
-* [x] Read-only policy by default: the SQL guard accepts exactly one
-      `SELECT` (or a `WITH`/`WITH RECURSIVE` query ending in `SELECT`),
-      enforced at load time and re-checked at runtime on the rendered
-      statement; fail-closed (`blueprint/sql/guard.py`)
-* [x] Writes require an explicit opt-in (`writes: true` in the tool YAML);
-      editing the SQL alone is not enough
-* [x] Injection hardening: Jinja2 `{{ }}` interpolation is rejected,
-      values reach the database only as bound placeholders (`%(name)s`)
-* [x] Response row cap `server.max_rows` (default `1000`), configurable
-* [x] Unit tests for the guard, pipeline enforcement and load-time
-      validation
-
----
-
-# Configuration
-
-* [x] server.yaml
-* [x] database.yaml
-* [x] logging.yaml
-* [x] pack.yaml
-
----
-
-# Agent guidance
-
-Help the LLM use the exposed tools correctly without accessing the database
-directly.
-
-* [x] Pack-level `instructions` (optional `pack.yaml` field) appended to every
-      tool description of that pack, e.g. the suggested tool order for a full
-      database overview (`packs/pg-dba`, `packs/mysql-dba`)
-* [x] Global usage notice appended to every tool description
-      (`TOOL_USAGE_NOTICE` in `blueprint/server.py`): the server is the only
-      supported way to interact with the database — never access it directly
-      or run ad-hoc SQL outside the tools
-* [x] Composed server-level `instructions` exposed via `FastMCP(...,
-      instructions=...)` for clients that surface them (OpenCode relies on
-      tool descriptions only)
-* [ ] Add `instructions` to `packs/sakila`
-* [ ] `get_replication_status` reports `replication_lag_seconds: 0` on a
-      standalone instance with no standby configured; return `null` (or
-      "no standby") instead of a misleading 0
-
----
-
-# Observability
-
-* [x] Structured JSON logging on stderr (structlog), console format option
-* [x] Optional rotating file handler for the main log (`file_path`,
-      `file_max_bytes`, `file_backups`)
-* [x] Audit channel: one JSONL record per tool execution
-      (`tool_executed`/`tool_failed` with tool, pack, params, duration,
-      rows, status), disabled by default
-* [x] Per-call `trace_id` bound via structlog contextvars, merged into all
-      log and audit records
-* [x] Sensitive data redaction by default (passwords, tokens, DSNs, ...)
-* [x] `docs/logging.md` documenting activation and control
-* [x] Prometheus metrics endpoint as an optional `[metrics]` extra: full
-      catalog (tool calls/duration/rows, cache hits/misses, DB queries and
-      errors, pool stats, registered tools/packs) served on a dedicated
-      `host:port/metrics` endpoint that works with stdio too; disabled by
-      default (`config/metrics.yaml`); `docs/metrics.md`
-* [ ] OpenTelemetry exporter as an optional extra (spans/metrics on top of
-      the existing `trace_id`)
-
----
-
-# Sakila example pack
-
-The recommended first example: a small, domain-oriented pack on PostgreSQL
-that lets an agent run a DVD rental store chatbot without writing SQL.  See
-`docs/sakila.md` for the full walkthrough.
-
-* [x] Create `packs/sakila` (PostgreSQL, domain-oriented, from a reference pack)
-* [x] `search_films(title?, category?, rating?)` — popularity order, rating
-      translated to `rating_label`/`min_age` in SQL, `available_copies`
-* [x] `get_film(film_id)` — full record with cast, categories and per-store
-      availability
-* [x] `search_customer(name)`
-* [x] `get_customer_rentals(customer_id)` — `active`/`overdue`/`returned` status
-* [x] Tool descriptions steer the agent (e.g. `search_customer` points to
-      `get_customer_rentals` to check a customer's situation)
-* [x] All pack SQL complies with the read-only policy (SELECT only)
-* [x] First tools with real parameters: `get_largest_objects` accepts an
-      optional `object_name` LIKE filter on both reference DBA packs
-* [x] Parameterized SQL escapes literal `%` as `%%` (documented in
-      `docs/pack_development.md`) and the pipeline binds only non-`None`
-      parameters
-
----
-
-# Reference DBA Packs
-
-More specialized administration packs.  The reference implementations are two
-independent, single-engine packs that expose the same 13 tools:
-`packs/pg-dba` (PostgreSQL 14+) and `packs/mysql-dba` (MySQL 8+).  The engine
-is declared in `pack.yaml` (`engines: [postgresql]` / `engines: [mysql]`); the
-configured engine selects which pack loads.  Each pack is a complete,
-copyable example of a Blueprint customization.
-
-## KPI dashboards
-
-Always return rows with `status` of `ok`/`warning`/`error`.
-
-* [x] get_operational_kpis()
-* [x] get_performance_kpis()
-* [x] get_security_kpis()
-
----
-
-## Detail tools
-
-* [x] get_users()
-* [x] get_connections()
-* [x] get_database_sizes()
-* [x] get_database_version()
-* [x] get_largest_objects()
-* [x] get_replication_status()
-* [x] get_tuning_configuration()
-* [x] get_slow_queries()
-* [x] get_maintenance_status()
-* [x] get_index_health()
-
----
-
-## Removed from the original pg-dba pack
-
-* [x] get_active_sessions(), get_blocking_sessions(),
-      get_wait_events(), get_long_running_queries() — covered by the KPI
-      dashboards, detail tools and `get_connections()`
-* [x] get_wal_backup_status() — checkpoint/backup metrics depend on the
-      PostgreSQL minor version; excluded from the static pack
-
----
-
-## Validated
-
-* [x] All tools run with a non-DBA user (`pg_monitor`) on PostgreSQL
-* [x] All tools run with a plain read-only PostgreSQL user
-* [x] All tools run on MySQL 8 with a least-privilege monitoring user
-* [x] SQL conformance suite for every pack: 13 tools per pack, manifest
-      engine, read-only single-SELECT guard, engine placeholder style
-      (`tests/test_pack_sql_conformance.py`)
-* [x] Adapter unit suite: engine routing, aliases (`mssql`, `sql_server`,
-      `postgres`), DSN/kwargs, connection-string building, driver-missing
-      hints, fake-driver execution (`tests/test_db_adapters.py`)
-* [x] Live integration tests for Oracle, ClickHouse, SQL Server and MariaDB
-      that skip when the engine is unreachable
-      (`tests/test_pack_engine_integration.py`; needs
-      `docker compose -f docker-compose.databases.yaml up -d`)
-
----
-
-## Template pack
-
-* [x] `template/pack` skeleton (pack.yaml + example tool + example SQL)
-* [x] Not auto-loaded by the framework
-
----
-
-# Oracle DBA Pack
-
-* [x] `packs/oracle-dba` (Oracle 12c+, 13 tools) with optional `[oracle]` extra
-      (oracledb thin mode)
-
----
-
-# ClickHouse DBA Pack
-
-* [x] `packs/clickhouse-dba` (ClickHouse 23+, 13 tools) with optional
-      `[clickhouse]` extra (`clickhouse-driver`, native port 9000)
-
----
-
-# SQL Server DBA Pack
-
-* [x] `packs/sqlserver-dba` (SQL Server 2016+, 13 tools) with optional
-      `[sqlserver]` extra (pyodbc)
-
----
-
-# MariaDB DBA Pack
-
-* [x] `packs/mariadb-dba` (MariaDB 10.4+, 13 tools); `mariadb` engine is a
-      separate adapter subclassing the MySQL one (asyncmy)
-
----
-
-# MySQL DBA Pack
-
-* [x] Covered by `packs/mysql-dba` (13 tools on MySQL 8)
-
----
-
-# Documentation
-
-* [x] Installation guide
-* [x] Quick start
-* [x] Pack development guide
-* [x] Custom server tutorial (`docs/tutorial.md`)
-* [x] Best practices guide (`docs/best_practices.md`)
-* [x] FAQ (`docs/faq.md`)
-* [ ] Adapter development guide
-* [ ] Contribution guide
-
----
-
-# Examples
-
-* [x] PostgreSQL example
-* [ ] Oracle example
-* [x] Customer Pack example (`examples/customers`)
-* [ ] ERP Pack example
-
----
-
-# Testing
-
-* [x] Unit tests
-* [x] Integration tests (PostgreSQL, live instance)
-* [x] Integration tests (MySQL, live instance, skipped when unreachable)
-* [ ] PostgreSQL CI
-* [ ] Oracle CI
-* [ ] SQL Server CI
-* [ ] MySQL CI
-
----
-
-# Docker
-
-* [x] Dockerfile (multi-stage, uv builder, non-root runtime)
-* [x] Docker Compose example (`docker-compose.yaml`: PostgreSQL + `blueprint`
-      server over Streamable HTTP with health checks)
-* [x] `docker-compose.databases.yaml` bringing up Oracle (1521), ClickHouse
-      (9000/8123), SQL Server (1433) and MariaDB (3307) with health checks
-      and first-boot least-privilege grants (`docker/init/`) for the
-      monitoring users
-* [x] Streamable HTTP example
-* [ ] Health endpoint (the compose stack uses a TCP healthcheck; a dedicated
-      HTTP endpoint is still open)
-
-Demo database provisioning (`docker/init/init-db.sh`, first init only):
-
-* [x] Roles: `dba` (superuser), `app_owner` (owns the pgbench schema) and
-      `monitor` (`pg_monitor` membership) — the MCP server connects as
-      `monitor` (least privilege)
-* [x] `pgbench` initialized at scale 1 plus a short benchmark run, so the
-      monitoring views return meaningful data
-* [x] `pg_stat_statements` installed and preloaded
-      (`shared_preload_libraries` via the compose `command`)
-
----
-
-# Future Features
-
-## Workflow Tools
-
-Higher-level tools orchestrating multiple atomic tools.
-
-Examples:
-
-* [ ] diagnose_performance()
-* [ ] diagnose_storage()
-* [ ] diagnose_autovacuum()
-* [ ] diagnose_replication()
-
----
-
-## AI-assisted Features
-
-* [ ] Tool self-documentation
-* [ ] Automatic OpenAPI-like documentation
-* [ ] Tool usage statistics
-* [ ] Performance metrics
-
----
-
-## Nice to Have
-
-* [ ] Plugin system
-* [ ] Pack installer
-* [ ] Pack repository
-* [ ] Web administration UI
-* [ ] GUI for "programming" packs: a visual editor to author and configure
-      packs (tool YAML + SQL) and to monitor/control them at runtime
-      (tool usage, health, results) — useful both for configuration and
-      for control
-* [x] Metrics endpoint
-* [x] Prometheus integration
-* [ ] NoSQL adapters
-* [ ] Per-server environment label (e.g. `server.label: "docker-demo"`)
-      embedded in every tool description, so agents can tell which
-      database a server targets even when several Blueprint servers expose
-      the same tool names (tool-name prefixing already disambiguates in
-      clients that prefix server names)
-
----
-
-# Long-term Vision
-
-The objective is not simply to create another MCP server.
-
-The objective is to establish a reusable architecture for building domain-oriented MCP servers.
-
-Developers should spend their time defining **tools**, **SQL**, and **business concepts**, while the framework handles infrastructure, transport, validation, caching, formatting, and database abstraction.
-
-Ultimately, adding a new tool should require little more than creating:
-
-* one YAML definition
-* one SQL file
-
-without writing additional Python code.
+# Long-term vision
+
+MCP Blueprint aims to be to MCP what REST frameworks became to HTTP APIs:
+developers describe **tools**, **SQL** and **business concepts**, while the
+framework handles infrastructure, transport, validation, caching, formatting
+and database abstraction.  Adding a tool should require little more than one
+YAML definition and one SQL file.
