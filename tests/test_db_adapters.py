@@ -76,9 +76,7 @@ def test_oracle_kwargs_default_port_when_unset() -> None:
 
 
 def test_oracle_kwargs_from_parts_ignores_pg_default_port() -> None:
-    adapter = OracleAdapter(
-        make_config(engine="oracle", host="db", port=5432, dbname="ORCL")
-    )
+    adapter = OracleAdapter(make_config(engine="oracle", host="db", port=5432, dbname="ORCL"))
     assert adapter._connection_kwargs()["dsn"] == "db:1521/ORCL"
 
 

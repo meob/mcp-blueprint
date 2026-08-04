@@ -71,9 +71,7 @@ def test_pack_manifest_declares_expected_engine(pack_name: str) -> None:
     assert manifest["engines"] == [PACKS[pack_name]]
 
 
-@pytest.mark.parametrize(
-    "pack_name", sorted(PACKS), ids=lambda p: p.replace("-dba", "")
-)
+@pytest.mark.parametrize("pack_name", sorted(PACKS), ids=lambda p: p.replace("-dba", ""))
 def test_all_sql_is_single_read_only_statement(pack_name: str) -> None:
     sql_dir = PROJECT_ROOT / "packs" / pack_name / "sql"
     files = sorted(sql_dir.glob("*.sql"))

@@ -76,8 +76,12 @@ class Metrics:
             builder = {"counter": counter, "gauge": gauge, "histogram": histogram}[metric_type]
             return builder(name, doc, labels, registry=self._registry)
 
-        self.tool_calls = mk("counter", "blueprint_tool_calls_total",
-                             "Tool invocations by status.", ["tool", "pack", "status"])
+        self.tool_calls = mk(
+            "counter",
+            "blueprint_tool_calls_total",
+            "Tool invocations by status.",
+            ["tool", "pack", "status"],
+        )
         self.tool_duration = histogram(
             "blueprint_tool_duration_seconds",
             "Tool execution latency in seconds.",
@@ -92,18 +96,23 @@ class Metrics:
             buckets=self._ROW_BUCKETS,
             registry=self._registry,
         )
-        self.tool_cache_hits = mk("counter", "blueprint_tool_cache_hits_total",
-                                  "Cache hits per tool.", ["tool"])
-        self.tool_cache_misses = mk("counter", "blueprint_tool_cache_misses_total",
-                                    "Cache misses per tool.", ["tool"])
+        self.tool_cache_hits = mk(
+            "counter", "blueprint_tool_cache_hits_total", "Cache hits per tool.", ["tool"]
+        )
+        self.tool_cache_misses = mk(
+            "counter", "blueprint_tool_cache_misses_total", "Cache misses per tool.", ["tool"]
+        )
 
-        self.cache_entries = mk("gauge", "blueprint_cache_entries",
-                                "Current number of cached entries.", [])
-        self.cache_maxsize = mk("gauge", "blueprint_cache_maxsize",
-                                "Configured cache max size per TTL bucket.", [])
+        self.cache_entries = mk(
+            "gauge", "blueprint_cache_entries", "Current number of cached entries.", []
+        )
+        self.cache_maxsize = mk(
+            "gauge", "blueprint_cache_maxsize", "Configured cache max size per TTL bucket.", []
+        )
 
-        self.db_queries = mk("counter", "blueprint_db_queries_total",
-                             "Database queries executed.", ["engine"])
+        self.db_queries = mk(
+            "counter", "blueprint_db_queries_total", "Database queries executed.", ["engine"]
+        )
         self.db_query_duration = histogram(
             "blueprint_db_query_duration_seconds",
             "Database query latency in seconds.",
@@ -111,21 +120,24 @@ class Metrics:
             buckets=self._BUCKETS,
             registry=self._registry,
         )
-        self.db_errors = mk("counter", "blueprint_db_errors_total",
-                            "Database queries that failed.", ["engine"])
-        self.db_pool_size = mk("gauge", "blueprint_db_pool_size",
-                               "Current open pool connections.", ["engine"])
-        self.db_pool_idle = mk("gauge", "blueprint_db_pool_idle",
-                               "Current idle pool connections.", ["engine"])
-        self.db_pool_max = mk("gauge", "blueprint_db_pool_max",
-                              "Maximum pool size.", ["engine"])
-        self.db_pool_waiting = mk("gauge", "blueprint_db_pool_waiting",
-                                  "Queries waiting for a connection.", ["engine"])
+        self.db_errors = mk(
+            "counter", "blueprint_db_errors_total", "Database queries that failed.", ["engine"]
+        )
+        self.db_pool_size = mk(
+            "gauge", "blueprint_db_pool_size", "Current open pool connections.", ["engine"]
+        )
+        self.db_pool_idle = mk(
+            "gauge", "blueprint_db_pool_idle", "Current idle pool connections.", ["engine"]
+        )
+        self.db_pool_max = mk("gauge", "blueprint_db_pool_max", "Maximum pool size.", ["engine"])
+        self.db_pool_waiting = mk(
+            "gauge", "blueprint_db_pool_waiting", "Queries waiting for a connection.", ["engine"]
+        )
 
-        self.tools_registered = mk("gauge", "blueprint_tools_registered",
-                                   "Number of registered tools.", [])
-        self.packs_loaded = mk("gauge", "blueprint_packs_loaded",
-                               "Number of loaded packs.", [])
+        self.tools_registered = mk(
+            "gauge", "blueprint_tools_registered", "Number of registered tools.", []
+        )
+        self.packs_loaded = mk("gauge", "blueprint_packs_loaded", "Number of loaded packs.", [])
 
     @property
     def registry(self) -> Any:
@@ -138,9 +150,7 @@ class Metrics:
 
         return generate_latest(self._registry)
 
-    def record_success(
-        self, tool: str, pack: str, duration_ms: float, rows: int
-    ) -> None:
+    def record_success(self, tool: str, pack: str, duration_ms: float, rows: int) -> None:
         """Record a successful tool execution."""
         self.tool_calls.labels(tool, pack, "success").inc()
         self.tool_duration.labels(tool, pack).observe(duration_ms / 1000.0)

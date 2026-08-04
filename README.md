@@ -1,6 +1,7 @@
 # MCP Blueprint
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![CI](https://github.com/meob/mcp-blueprint/actions/workflows/ci.yml/badge.svg)](https://github.com/meob/mcp-blueprint/actions/workflows/ci.yml)
 
 **Build domain-oriented MCP servers without writing Python code for every project.**
 

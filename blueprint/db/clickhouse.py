@@ -107,9 +107,7 @@ class ClickHouseAdapter(DatabaseAdapter):
             raise DatabaseError(f"query failed: {exc}") from exc
         finally:
             if self._metrics is not None:
-                self._metrics.record_db_query(
-                    self.engine, perf_counter() - started, error=not ok
-                )
+                self._metrics.record_db_query(self.engine, perf_counter() - started, error=not ok)
 
     async def test_connection(self) -> None:
         await self.execute("SELECT 1 AS ok", {})

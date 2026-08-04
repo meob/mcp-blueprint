@@ -144,9 +144,7 @@ class ToolPipeline:
         if self._metrics is not None:
             self._metrics.record_cache(tool, hit=hit)
 
-    def _record_metrics_success(
-        self, tool: str, pack: str, duration_ms: float, rows: int
-    ) -> None:
+    def _record_metrics_success(self, tool: str, pack: str, duration_ms: float, rows: int) -> None:
         if self._metrics is not None:
             self._metrics.record_success(tool, pack, duration_ms, rows)
 

@@ -106,9 +106,7 @@ class MySQLAdapter(DatabaseAdapter):
             raise DatabaseError(f"query failed: {exc}") from exc
         finally:
             if self._metrics is not None:
-                self._metrics.record_db_query(
-                    self.engine, perf_counter() - started, error=not ok
-                )
+                self._metrics.record_db_query(self.engine, perf_counter() - started, error=not ok)
                 self._update_pool_metrics(pool)
 
     def _update_pool_metrics(self, pool: asyncmy.pool.Pool | None) -> None:

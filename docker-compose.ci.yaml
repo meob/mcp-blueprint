@@ -1,0 +1,10 @@
+# CI-only compose override.
+#
+# docker-compose.yaml deliberately maps no host port for the demo PostgreSQL
+# (the demo talks to it over the compose network, and localhost:5432 is
+# reserved for a developer's local instance).  CI runs the integration tests
+# on the runner host, so it needs the port exposed here.
+services:
+  postgres:
+    ports:
+      - "5432:5432"

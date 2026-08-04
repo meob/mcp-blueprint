@@ -70,6 +70,9 @@ The detailed history is archived in `staff/TODO_old.md`.
 - Unit suites plus live integration tests (skipped when an engine is
   unreachable); SQL conformance suite (13 tools/pack, guard, placeholders).
 - Least-privilege monitoring users validated on PostgreSQL and MySQL.
+- GitHub Actions CI (`ci.yml`): lint/typecheck, unit tests, and live
+  integration tests against all six engines, reusing the provided compose
+  stacks (`.github` workflow, `docker-compose.ci.yaml` host-port override).
 
 ## Docker
 
@@ -125,10 +128,6 @@ The detailed history is archived in `staff/TODO_old.md`.
 
 - [ ] Oracle example.
 - [ ] ERP Pack example.
-
-## Testing
-
-- [ ] CI for PostgreSQL, Oracle, SQL Server and MySQL.
 
 ---
 

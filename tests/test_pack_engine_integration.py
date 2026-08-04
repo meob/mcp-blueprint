@@ -130,9 +130,7 @@ async def test_largest_objects_ordered_and_filterable(engine: str) -> None:
         assert len(unfiltered["rows"]) <= 32
 
         prefix = unfiltered["rows"][0]["name"][:4]
-        filtered = await bp.pipeline.execute(
-            "get_largest_objects", {"object_name": f"{prefix}%"}
-        )
+        filtered = await bp.pipeline.execute("get_largest_objects", {"object_name": f"{prefix}%"})
         assert filtered["status"] == "success"
         assert all(row["name"].startswith(prefix) for row in filtered["rows"])
         assert filtered["row_count"] <= unfiltered["row_count"]

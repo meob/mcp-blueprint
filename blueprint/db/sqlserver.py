@@ -145,9 +145,7 @@ class SQLServerAdapter(DatabaseAdapter):
             if connection is not None and self._queue is not None:
                 self._queue.put_nowait(connection)
             if self._metrics is not None:
-                self._metrics.record_db_query(
-                    self.engine, perf_counter() - started, error=not ok
-                )
+                self._metrics.record_db_query(self.engine, perf_counter() - started, error=not ok)
 
     async def test_connection(self) -> None:
         await self.execute("SELECT 1 AS ok", {})

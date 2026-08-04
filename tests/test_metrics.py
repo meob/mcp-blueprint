@@ -102,16 +102,21 @@ async def test_pipeline_records_tool_metrics(tmp_path) -> None:
     await pipeline.execute("get_data", {"limit": 5})
 
     assert result["row_count"] == 1
-    assert metrics.registry.get_sample_value(
-        "blueprint_tool_calls_total",
-        {"pack": "test-pack", "status": "success", "tool": "get_data"},
-    ) == 2.0
-    assert metrics.registry.get_sample_value(
-        "blueprint_tool_cache_hits_total", {"tool": "get_data"}
-    ) == 1.0
-    assert metrics.registry.get_sample_value(
-        "blueprint_tool_cache_misses_total", {"tool": "get_data"}
-    ) == 1.0
+    assert (
+        metrics.registry.get_sample_value(
+            "blueprint_tool_calls_total",
+            {"pack": "test-pack", "status": "success", "tool": "get_data"},
+        )
+        == 2.0
+    )
+    assert (
+        metrics.registry.get_sample_value("blueprint_tool_cache_hits_total", {"tool": "get_data"})
+        == 1.0
+    )
+    assert (
+        metrics.registry.get_sample_value("blueprint_tool_cache_misses_total", {"tool": "get_data"})
+        == 1.0
+    )
 
 
 async def test_pipeline_records_errors(tmp_path) -> None:
@@ -125,14 +130,20 @@ async def test_pipeline_records_errors(tmp_path) -> None:
     with pytest.raises(ToolValidationError):
         await pipeline.execute("get_data", {})
 
-    assert metrics.registry.get_sample_value(
-        "blueprint_tool_calls_total",
-        {"pack": "test-pack", "status": "error", "tool": "get_data"},
-    ) == 1.0
-    assert metrics.registry.get_sample_value(
-        "blueprint_tool_calls_total",
-        {"pack": "test-pack", "status": "success", "tool": "get_data"},
-    ) is None
+    assert (
+        metrics.registry.get_sample_value(
+            "blueprint_tool_calls_total",
+            {"pack": "test-pack", "status": "error", "tool": "get_data"},
+        )
+        == 1.0
+    )
+    assert (
+        metrics.registry.get_sample_value(
+            "blueprint_tool_calls_total",
+            {"pack": "test-pack", "status": "success", "tool": "get_data"},
+        )
+        is None
+    )
 
 
 async def test_validation_gate_records_rejection(tmp_path) -> None:
@@ -144,10 +155,13 @@ async def test_validation_gate_records_rejection(tmp_path) -> None:
     with pytest.raises(ToolValidationError):
         await mcp.call_tool("get_data", {"limit": "oops"})
 
-    assert metrics.registry.get_sample_value(
-        "blueprint_tool_calls_total",
-        {"pack": "test-pack", "status": "error", "tool": "get_data"},
-    ) == 1.0
+    assert (
+        metrics.registry.get_sample_value(
+            "blueprint_tool_calls_total",
+            {"pack": "test-pack", "status": "error", "tool": "get_data"},
+        )
+        == 1.0
+    )
 
 
 def test_start_metrics_server_requires_enabled() -> None:

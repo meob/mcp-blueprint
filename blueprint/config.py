@@ -254,12 +254,8 @@ def load_config(config_path: str | Path | None = None) -> BlueprintConfig:
             load_database_config(database_file) if database_file.is_file() else DatabaseConfig()
         )
         logging = load_logging_config(logging_file) if logging_file.is_file() else LoggingConfig()
-        metrics = (
-            load_metrics_config(metrics_file) if metrics_file.is_file() else MetricsConfig()
-        )
-        return BlueprintConfig(
-            server=server, database=database, logging=logging, metrics=metrics
-        )
+        metrics = load_metrics_config(metrics_file) if metrics_file.is_file() else MetricsConfig()
+        return BlueprintConfig(server=server, database=database, logging=logging, metrics=metrics)
 
     data = load_yaml(path)
     if any(key in data for key in ("server", "database", "logging", "metrics")):
