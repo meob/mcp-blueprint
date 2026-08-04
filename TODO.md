@@ -92,6 +92,8 @@ The detailed history is archived in `staff/TODO_old.md`.
 
 ## Transport
 
+- Test stdio with OpenCode (done: the `pg-dba` server answers `get_connections`
+  and `get_database_version` from OpenCode).
 - [ ] Test stdio with Claude Desktop.
 - [ ] Test stdio with Gemini CLI.
 - [ ] Dedicated HTTP health endpoint (the compose stack uses a TCP healthcheck
