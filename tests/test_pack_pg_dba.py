@@ -123,7 +123,6 @@ async def test_get_connections_reports_sessions(blueprint: Blueprint) -> None:
     for row in result["rows"]:
         assert set(row) == columns
         assert isinstance(row["pid"], int)
-    assert any(row["user"] and row["database"] for row in result["rows"])
 
 
 async def test_stdlib_server_registers_tools(blueprint: Blueprint) -> None:

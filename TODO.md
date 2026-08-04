@@ -39,6 +39,9 @@ The detailed history is archived in `staff/TODO_old.md`.
   index health).
 - `packs/sakila`: first domain-oriented example (film search, film details,
   customer rentals) on PostgreSQL.
+- Sizes (`size_bytes`) are reported as raw byte counts across all engines:
+  no engine-specific human-readable `size`/`size_mb` strings (databases,
+  tables, indexes).
 - `template/pack`: minimal skeleton, not auto-loaded.
 
 ## Security
@@ -102,9 +105,6 @@ The detailed history is archived in `staff/TODO_old.md`.
 
 - [ ] Duration formatting.
 - [ ] Computed columns.
-- [ ] Human-readable value formatting (e.g. `1000000` -> `1M`) applied
-      consistently across engines (PostgreSQL and MySQL return different
-      `size` formats).
 
 ## Cache
 

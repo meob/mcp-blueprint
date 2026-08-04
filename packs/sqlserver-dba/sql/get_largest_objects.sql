@@ -3,8 +3,7 @@ SELECT TOP 32
        t.name AS name,
        'table' AS kind,
        MAX(p.rows) AS estimated_rows,
-       SUM(a.total_pages) * 8192 AS size_bytes,
-       CONVERT(decimal(18,1), SUM(a.total_pages) * 8.0 / 1024) AS size_mb
+       SUM(a.total_pages) * 8192 AS size_bytes
 FROM sys.tables t
 JOIN sys.indexes i ON t.object_id = i.object_id
 JOIN sys.partitions p ON i.object_id = p.object_id AND i.index_id = p.index_id

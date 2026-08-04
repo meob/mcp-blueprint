@@ -20,6 +20,7 @@ import logging
 import sys
 from collections.abc import MutableMapping
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Any, cast
 
 import structlog
@@ -89,6 +90,12 @@ def _make_formatter(renderer: structlog.types.Processor) -> structlog.stdlib.Pro
     )
 
 
+def _ensure_dir(path: str) -> None:
+    """Create the parent directory of ``path`` if it does not exist."""
+    parent = Path(path).expanduser().parent
+    parent.mkdir(parents=True, exist_ok=True)
+
+
 def configure_logging(config: LoggingConfig | None = None) -> structlog.stdlib.BoundLogger:
     """Configure structlog and stdlib logging.
 
@@ -124,6 +131,7 @@ def configure_logging(config: LoggingConfig | None = None) -> structlog.stdlib.B
     handlers[0].setFormatter(formatter)
 
     if config.file_path:
+        _ensure_dir(config.file_path)
         file_handler = RotatingFileHandler(
             config.file_path,
             maxBytes=config.file_max_bytes,
@@ -150,6 +158,7 @@ def _configure_audit_logger(config: LoggingConfig) -> None:
         audit_logger.setLevel(logging.CRITICAL + 1)
         return
     audit: AuditConfig = config.audit
+    _ensure_dir(audit.file_path)
     handler = RotatingFileHandler(
         audit.file_path,
         maxBytes=audit.max_bytes,

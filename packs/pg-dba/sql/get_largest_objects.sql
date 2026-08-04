@@ -8,8 +8,7 @@ SELECT n.nspname                                  AS schema,
            ELSE c.relkind::text
        END                                       AS kind,
        c.reltuples::bigint                        AS estimated_rows,
-       pg_relation_size(c.oid)                    AS size_bytes,
-       pg_size_pretty(pg_relation_size(c.oid))    AS size
+       pg_relation_size(c.oid)                    AS size_bytes
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE c.relkind IN ('r', 'i', 'm', 'p')

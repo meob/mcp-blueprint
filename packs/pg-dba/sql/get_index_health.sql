@@ -19,7 +19,7 @@ SELECT * FROM (
     SELECT 'unused' AS component,
            s.schemaname || '.' || s.relname AS table_name,
            s.indexrelname AS name,
-           pg_size_pretty(pg_relation_size(s.indexrelid)) AS detail,
+           pg_relation_size(s.indexrelid) || ' bytes' AS detail,
            pg_relation_size(s.indexrelid) AS metric
     FROM pg_stat_user_indexes s
     JOIN pg_index ix ON ix.indexrelid = s.indexrelid

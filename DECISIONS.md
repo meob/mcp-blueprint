@@ -135,6 +135,17 @@ Two driver realities shaped the implementation:
 
 ---
 
+# D14 — Sizes are reported in bytes
+
+The DBA packs return sizes (databases, tables, indexes) as raw byte counts in a
+single `size_bytes` column, never as engine-specific human-readable strings.
+Earlier versions used `pg_size_pretty()`, `formatReadableSize()` or string
+conversions, so each engine returned a different `size`/`size_mb` format; an
+agent should receive one comparable unit, and byte counts are exact and
+lossless.
+
+---
+
 # Guiding principle
 
 Every decision serves the same objective:

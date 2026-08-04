@@ -54,6 +54,16 @@ def test_configure_file_logging_writes_jsonl(tmp_path) -> None:
     assert record["level"] == "info"
 
 
+def test_configure_file_logging_creates_missing_directory(tmp_path) -> None:
+    log_file = tmp_path / "nested" / "logs" / "blueprint.jsonl"
+    configure_logging(LoggingConfig(file_path=str(log_file)))
+    structlog.get_logger("test").info("hello", tool="get_data")
+    assert log_file.is_file()
+    lines = log_file.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["event"] == "hello"
+
+
 def test_configure_audit_writes_jsonl(tmp_path) -> None:
     audit_file = tmp_path / "audit.jsonl"
     configure_logging(LoggingConfig(audit=AuditConfig(enabled=True, file_path=str(audit_file))))
