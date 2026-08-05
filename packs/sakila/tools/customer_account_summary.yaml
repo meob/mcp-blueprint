@@ -1,0 +1,21 @@
+name: customer_account_summary
+description: >-
+  Full account snapshot for a customer, resolved by name: contact information
+  and home store, total rentals, the number of open (not returned) rentals,
+  the number of overdue rentals, an explicit standing flag ('GOOD STANDING'
+  when nothing is overdue, otherwise 'HAS OVERDUE'), and the list of films
+  currently on loan (overdue films marked).  open_films is 'NONE' when
+  nothing is on loan.  Accepts a first name, a last name, or a full name;
+  matching is case-insensitive.  Use this when a customer asks about their
+  account, whether they are in good standing, what is still on loan, what is
+  overdue, or to verify that they have returned everything (open_films
+  'NONE' means nothing is on loan).  For a list of the films a customer has
+  rented in the past, use rental_history instead.
+parameters:
+  customer_name:
+    type: string
+    required: true
+    description: Customer first name, last name, or full name.
+sql: ../sql/customer_account_summary.sql
+cache:
+  ttl: 30

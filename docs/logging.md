@@ -51,9 +51,9 @@ Record schema (success):
 
 ```json
 {
-  "tool": "search_films",
+  "tool": "recommend_films",
   "pack": "sakila",
-  "params": {"title": "sky"},
+  "params": {"category": "Family"},
   "duration_ms": 44.66,
   "rows": 2,
   "status": "success",

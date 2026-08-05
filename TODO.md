@@ -37,8 +37,8 @@ The detailed history is archived in `staff/TODO_old.md`.
   `ok`/`warning`/`error`) plus detail tools (users, connections, sizes,
   version, largest objects, replication, tuning, slow queries, maintenance,
   index health).
-- `packs/sakila`: first domain-oriented example (film search, film details,
-  customer rentals) on PostgreSQL.
+- `packs/sakila`: canonical domain-oriented example (customer account,
+  film recommendations, per-store stock) on PostgreSQL.
 - Sizes (`size_bytes`) are reported as raw byte counts across all engines:
   no engine-specific human-readable `size`/`size_mb` strings (databases,
   tables, indexes).
@@ -147,6 +147,21 @@ Higher-level tools orchestrating atomic tools:
 - [ ] Tool self-documentation.
 - [ ] Automatic OpenAPI-like documentation.
 - [ ] Tool usage statistics.
+
+## Paper benchmark (Sakila / Model Demotion)
+
+Validate the illustrative figures used in `staff/mcp-blueprint_zenodo.md`
+(Section 6).  The ~4,200 token, ~350 token, failure-rate and "100%
+correctness" numbers are hypotheses to be tested, not measurements.
+
+- [ ] Define the benchmark protocol: fixed prompt set for the Sakila rental
+      workflow (`customer_account_summary` → `recommend_films`),
+      model tiers (e.g. large/medium/SLM), temperature 0, repeated runs.
+- [ ] Record inputs and outputs (tool invocations, tool results, final answer)
+      to a log directory.
+- [ ] Collect metrics per tier: prompt/response tokens, latency, cost,
+      correctness and failure rate.
+- [ ] Report results in the paper and replace the illustrative figures.
 
 ## Nice to have
 

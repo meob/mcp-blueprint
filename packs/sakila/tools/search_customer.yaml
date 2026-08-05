@@ -1,13 +1,14 @@
 name: search_customer
 description: >-
-  Find customers by a first or last name substring.  Use this first when a
-  customer asks about their account, then call get_customer_rentals with the
-  resulting customer_id to check their rental situation.
+  Find customers by name.  Accepts a first name, a last name, or a full name
+  such as 'Tammy Sanders'; matching is case-insensitive.  Returns the
+  matching customers with their customer_id.  Use this to identify a customer
+  before other tools, or to check whether a customer exists.
 parameters:
   name:
     type: string
     required: true
-    description: Name or part of a name to search for.
+    description: First name, last name, or full name to search for.
 sql: ../sql/search_customer.sql
 cache:
   ttl: 30

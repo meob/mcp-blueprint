@@ -152,3 +152,21 @@ Every decision serves the same objective:
 
 > Allow developers to describe **what** a tool does, while the framework
 > manages **how** it is exposed, executed and maintained.
+
+---
+
+# D15 — The sakila pack encapsulates domain logic server-side
+
+The canonical `sakila` pack ships domain tools that resolve entities and
+assemble business answers server-side (`customer_account_summary`,
+`recommend_films`, `film_stock`, `rental_history`, `search_customer`) rather
+than thin, table-shaped lookups.
+
+A benchmark comparing generic SQL, an early thin-tool pack and this pack on
+the same 15 tasks and databases showed the thin-tool design was barely better
+than generic SQL, while the verticalized design reached 0.996 mean accuracy
+vs 0.711 (SQL) at a fraction of the tokens and latency.  The example pack
+must demonstrate the framework's value proposition, so the verticalized
+design is the one shipped.  The frozen early pack is preserved in the
+benchmark repository (`packs_baseline/`) only for reproducibility of the
+recorded results.

@@ -1,0 +1,21 @@
+name: film_stock
+description: >-
+  Per-store stock for a film found by title.  One call returns one row per
+  store with the total copies, the copies currently available (not on loan),
+  plus the film's rating and length in minutes.  The title is matched
+  case-insensitively as a substring.  Pass store_id only to filter to a
+  single store.  Use this when a customer asks how many copies of a film are
+  available or whether it is in stock at a store.
+parameters:
+  title:
+    type: string
+    required: true
+    description: Film title or a substring of it, matched case-insensitively.
+  store_id:
+    type: integer
+    required: false
+    default: null
+    description: Optional store identifier to filter the result to one store.
+sql: ../sql/film_stock.sql
+cache:
+  ttl: 30

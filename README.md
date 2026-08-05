@@ -260,22 +260,34 @@ To start a new domain pack, copy the template or an existing pack such as
 `packs/sakila` is the recommended first example: a small, domain-oriented pack
 for the [Sakila sample database](https://dev.mysql.com/doc/sakila/en/) on
 PostgreSQL.  It lets an agent run a DVD rental store chatbot — recommend
-films, inspect a film in detail and review a customer's rental activity —
-without ever writing SQL.
+films, inspect stock, review a customer's account — without ever writing SQL.
 
-| Tool                   | Purpose                                            |
-| ---------------------- | -------------------------------------------------- |
-| `search_films`         | Recommend films by optional title, category, rating. |
-| `get_film`             | Full catalog record for one film.                  |
-| `search_customer`      | Find a customer by first or last name.             |
-| `get_customer_rentals` | Rental history with an active/overdue/returned status. |
+The tools are *verticalized*: business logic is pushed server-side, so a
+rental-store question needs a single purposeful tool call resolved by *name*
+rather than by id.  In the framework's "model demotion" benchmark this design
+reached 98% fully-correct answers across four small local models (0.996
+pooled score) versus 0.711 for a generic read-only SQL agent.
 
-Domain knowledge lives in SQL, not Python: `search_films` translates MPAA
-rating codes into a human-readable `rating_label` and a numeric `min_age`,
-and `get_customer_rentals` computes the rental `status`.  The tool
-descriptions steer the agent, e.g. `search_customer` points at
-`get_customer_rentals` to check a customer's situation.  See
-[docs/sakila.md](docs/sakila.md) for the full walkthrough.
+| Tool                      | Purpose                                            |
+| ------------------------- | -------------------------------------------------- |
+| `customer_account_summary`| Full account snapshot resolved by name: standing, open/overdue counts, films currently on loan (`NONE` if empty). |
+| `rental_history`          | The last 25 rentals of a customer with returned/active/overdue status. |
+| `recommend_films`         | Popular films the customer has not already rented, by optional category/rating, in-stock filter. |
+| `film_stock`              | Per-store availability, rating and length for one film by title. |
+| `search_customer`         | Find a customer by first, last or full name.       |
+
+Domain knowledge lives in SQL, not Python: `customer_account_summary`
+computes the `standing` flag and the on-loan list, `rental_history` computes
+the rental `status`, and `recommend_films` orders by popularity and excludes
+films the customer has already seen.
+
+The SQL templates absorb the model's vocabulary: a category synonym map
+(`Science Fiction` / `sci-fi` / `scifi`), rating codes passed as a category
+(`category="G"`), and generic values (`rating="any"`, `category="all ages"`)
+degrade gracefully instead of returning empty rows.  See
+[docs/sakila.md](docs/sakila.md) for the full walkthrough and
+[staff/evaluation_comments.md](../mcp-blueprint-benchmark/staff/evaluation_comments.md)
+in the benchmark repository for the benchmark analysis.
 
 The DBA packs below are more specialized administration packs; study Sakila
 first to see how a domain pack is built.

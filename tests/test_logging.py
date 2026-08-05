@@ -38,7 +38,7 @@ def test_redact_secrets_masks_sensitive_keys() -> None:
 
 
 def test_redact_secrets_keeps_normal_values() -> None:
-    event = {"tool": "search_films", "params": {"title": "sky"}, "rows": 3}
+    event = {"tool": "recommend_films", "params": {"category": "Family"}, "rows": 3}
     assert redact_secrets(None, "info", event) == event
 
 
@@ -70,9 +70,9 @@ def test_configure_audit_writes_jsonl(tmp_path) -> None:
     assert audit_enabled() is True
     get_audit_logger().info(
         "tool_executed",
-        tool="get_film",
+        tool="customer_account_summary",
         pack="sakila",
-        params={"film_id": 1},
+        params={"customer_name": "tammy sanders"},
         duration_ms=12.5,
         rows=1,
         status="success",
@@ -81,7 +81,7 @@ def test_configure_audit_writes_jsonl(tmp_path) -> None:
     assert len(lines) == 1
     record = json.loads(lines[0])
     assert record["event"] == "tool_executed"
-    assert record["tool"] == "get_film"
+    assert record["tool"] == "customer_account_summary"
     assert record["pack"] == "sakila"
     assert record["status"] == "success"
     assert record["level"] == "info"
@@ -91,5 +91,5 @@ def test_audit_disabled_is_inert(tmp_path) -> None:
     audit_file = tmp_path / "audit.jsonl"
     configure_logging(LoggingConfig(audit=AuditConfig(enabled=False, file_path=str(audit_file))))
     assert audit_enabled() is False
-    get_audit_logger().info("tool_executed", tool="get_film")
+    get_audit_logger().info("tool_executed", tool="customer_account_summary")
     assert not audit_file.exists()

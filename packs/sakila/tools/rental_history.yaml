@@ -1,0 +1,16 @@
+name: rental_history
+description: >-
+  The most recent 25 rentals of a customer, resolved by name, with the
+  rental date and the current status of each: returned, active (still on
+  loan) or overdue (on loan past the due date).  Accepts a first name, a
+  last name, or a full name; matching is case-insensitive.  Use this when a
+  customer asks what films they have rented in the past.  For what is still
+  on loan right now, use customer_account_summary instead.
+parameters:
+  customer_name:
+    type: string
+    required: true
+    description: Customer first name, last name, or full name.
+sql: ../sql/rental_history.sql
+cache:
+  ttl: 30

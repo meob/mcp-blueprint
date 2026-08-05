@@ -1,0 +1,44 @@
+name: recommend_films
+description: >-
+  Recommend popular films matching an optional category and/or rating.
+  When customer_name is provided, films that the customer has already rented
+  are excluded, so the suggestions are always new to that customer.  Results
+  are ordered by popularity (number of rentals) and include available copies.
+  in_stock_only filters to films that have at least one copy currently
+  available.  Use this to recommend films to a customer or for a generic
+  recommendation (omit customer_name).  count defaults to 3 when not provided.
+parameters:
+  customer_name:
+    type: string
+    required: false
+    default: null
+    description: >-
+      Customer first name, last name, or full name; exclude films this
+      customer has already rented.
+  category:
+    type: string
+    required: false
+    default: null
+    description: >-
+      Film category name.  Common values: Action, Animation, Children,
+      Classics, Comedy, Documentary, Drama, Family, Foreign, Games, Horror,
+      Music, New, Sci-Fi, Sports, Travel.  Common synonyms (e.g. 'Science
+      Fiction' for Sci-Fi) are understood.
+  rating:
+    type: string
+    required: false
+    default: null
+    description: MPAA rating code, one of G, PG, PG-13, R, NC-17.
+  count:
+    type: integer
+    required: false
+    default: 3
+    description: Number of recommendations to return.
+  in_stock_only:
+    type: boolean
+    required: false
+    default: true
+    description: Only return films with at least one available copy.
+sql: ../sql/recommend_films.sql
+cache:
+  ttl: 30

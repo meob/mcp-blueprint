@@ -58,7 +58,7 @@ instead of duplicating.
 server instructions.  Use it for:
 
 * the recommended call order ("first `search_customer`, then
-  `get_customer_rentals`");
+  `customer_account_summary`");
 * domain rules the tools cannot express ("check what the customer still has
   on loan before recommending new films", "prefer categories the customer
   already rents");

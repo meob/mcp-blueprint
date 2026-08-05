@@ -56,13 +56,14 @@ uv run blueprint list-tools --config config
 ```
 
 With the default PostgreSQL engine the server exposes all engine-compatible
-packs: the four Sakila store tools plus the thirteen DBA tools:
+packs: the five Sakila store tools plus the thirteen DBA tools:
 
 ```
-get_customer_rentals
-get_film
+customer_account_summary
+film_stock
+recommend_films
+rental_history
 search_customer
-search_films
 get_connections
 get_database_sizes
 get_database_version
@@ -80,7 +81,7 @@ get_users
 
 To expose a subset per server, restrict the pack allowlist via
 `MCP_BLUEPRINT_SERVER_PACKS` (comma-separated pack names).  For example
-`MCP_BLUEPRINT_SERVER_PACKS=sakila` loads only the four Sakila tools and
+`MCP_BLUEPRINT_SERVER_PACKS=sakila` loads only the five Sakila tools and
 `MCP_BLUEPRINT_SERVER_PACKS=pg-dba` only the thirteen DBA tools.  See
 `docs/pack_development.md` for details.
 
@@ -196,9 +197,10 @@ The exposed tools are domain-oriented.  Ask for information, not SQL.
 
 The Sakila store tools:
 
-* "what should I recommend to a family with a 12-year-old?" → `search_films`
-* "tell me more about this film" → `get_film`
-* "is my customer returning the DVDs on time?" → `get_customer_rentals`
+* "what should I recommend to a family with a 12-year-old?" → `recommend_films`
+* "is my customer returning the DVDs on time?" → `customer_account_summary`
+* "what films has this customer rented before?" → `rental_history`
+* "is Academy Dinosaur in stock at store 2?" → `film_stock`
 
 The DBA tools:
 

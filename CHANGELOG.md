@@ -7,6 +7,26 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking**: the canonical `packs/sakila` pack (v0.5.0) now ships the
+  verticalized domain tools.  The thin, table-shaped tools (`search_films`,
+  `get_film`, `get_customer_rentals`) were replaced by tools that encapsulate
+  business logic server-side so rental-store questions need a single
+  name-based tool call: `customer_account_summary`, `rental_history`,
+  `recommend_films`, `film_stock`, `search_customer`.  The frozen former pack
+  is preserved in the benchmark repository (`packs_baseline/`) for
+  reproducibility of the recorded results.
+- The verticalized design is the pack used by the "model demotion" benchmark
+  (0.996 pooled accuracy, 98% fully-correct across four small local models).
+
+### Added
+
+- `recommend_films` tolerates the model's vocabulary (category synonym map,
+  rating codes passed as category, generic values like `"any"`/`"all ages"`);
+  `customer_account_summary` exposes an explicit `standing` flag and an
+  `open_films` list (`NONE` when empty).
+
 ## [0.2.1] - 2026-08-04
 
 ### Fixed
